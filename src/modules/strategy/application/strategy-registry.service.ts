@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { StrategyPlugin } from '../domain/strategy.types';
+import { EqualWeightMockStrategyPlugin } from '../domain/plugins/equal-weight-mock-strategy.plugin';
 import { MultiFactorStrategyPlugin, type MultiFactorStrategyParameters } from '../domain/plugins/multi-factor-strategy.plugin';
 
 type RegisteredStrategyPlugin = StrategyPlugin<MultiFactorStrategyParameters>;
@@ -9,8 +10,9 @@ export class StrategyRegistryService {
   private readonly logger = new Logger(StrategyRegistryService.name);
   private readonly plugins = new Map<string, RegisteredStrategyPlugin>();
 
-  constructor(multiFactorStrategyPlugin: MultiFactorStrategyPlugin) {
+  constructor(multiFactorStrategyPlugin: MultiFactorStrategyPlugin, equalWeightMockStrategyPlugin: EqualWeightMockStrategyPlugin) {
     this.register(multiFactorStrategyPlugin);
+    this.register(equalWeightMockStrategyPlugin);
   }
 
   register(plugin: RegisteredStrategyPlugin): void {

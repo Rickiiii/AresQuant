@@ -75,7 +75,7 @@ export class PrismaDailyBarRepository implements DailyBarRepository {
         ...(record.volumeRatio === null ? {} : { volumeRatio: toDecimal(record.volumeRatio) }),
       };
       return DailyBarEntity.create({
-        securityId: record.securityId,
+        securityId: record.securityId ?? '',
         tradeDate: record.tradeDate,
         open: toDecimal(record.open),
         high: toDecimal(record.high),

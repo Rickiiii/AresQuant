@@ -1,70 +1,192 @@
 # AresQuant
 
-AresQuant 是面向 A 股市场的量化交易系统。第一阶段已完成 NestJS 后端工程初始化、Prisma/PostgreSQL 数据模型设计、首个 migration、行情同步模块骨架、回测引擎基础框架和多因子策略插件框架。
+AresQuant is a NestJS + Prisma based A-share quantitative trading platform. The current backend includes a data center, mock data provider, data quality checks, adjustment-factor price calculation, and a professional backtest engine.
 
-## 技术栈
+## Stack
 
-- Node.js + TypeScript + NestJS
-- Prisma ORM + PostgreSQL
-- Redis 配置预留
-- Swagger API 文档：启动后访问 `/docs`
+- Node.js, TypeScript, NestJS
+- Prisma ORM, PostgreSQL
+- Redis compatible service for BullMQ
+- Jest, ESLint
+- Swagger: `http://localhost:3000/docs`
 
-## 初始化
+## Quick Start
 
 ```powershell
 pnpm install
 Copy-Item .env.example .env
-docker compose up -d
 pnpm prisma:generate
 pnpm prisma:deploy
 pnpm start:dev
 ```
 
-## 数据库设计
+Local services used during development:
 
-核心 Prisma schema 位于 `prisma/schema.prisma`，首个 PostgreSQL migration 位于 `prisma/migrations/20260514000100_init_ares_quant/migration.sql`。
+- PostgreSQL on `localhost:5432`
+- Redis compatible service on `localhost:6379`
 
-第一阶段表：
+## Phase 1: Foundation
 
-- `securities`：证券主数据，覆盖股票、ETF、指数。
-- `trading_calendars`：交易日历。
-- `daily_bars`：A 股日线行情，包含涨跌停、停牌标记。
-- `minute_bars`：分钟线行情。
-- `adjustment_factors`：复权因子。
-- `special_statuses`：ST、停牌、涨跌停约束数据。
-- `corporate_actions`：分红送配等公司行为。
-- `data_sync_jobs`：行情同步任务状态。
-- `strategy_definitions`：插件化策略定义。
-- `backtest_runs` 与 `backtest_equity_points`：回测任务与权益曲线。
+Phase 1 delivered the backend foundation:
 
-## 模块边界
+- NestJS application skeleton
+- Strict TypeScript config
+- Prisma and PostgreSQL initialization
+- Modular structure for Data, Strategy, Backtest, Risk, Trading, Notification, and Portfolio
+- Swagger setup
+- Initial Data, Strategy, and Backtest module skeletons
 
-- `src/modules/data`：行情数据同步、清洗、Repository 抽象与 Prisma 实现。
-- `src/modules/strategy`：策略插件注册表与多因子策略框架。
-- `src/modules/backtest`：回测引擎基础服务，后续扩展 T+1、涨跌停、滑点、手续费和仓位控制。
-- `src/database`：Prisma 客户端生命周期管理。
-- `src/config`：环境变量驱动配置与启动校验。
+## Phase 2: A-share Data Center
 
-## API
+Phase 2 extends `DataModule` into a usable A-share data center:
 
-当前基础接口：
+- Stock master data
+- Trading calendar
+- Stock daily bars
+- Index daily bars
+- Limit prices
+- Suspensions
+- Adjustment factors
+- Financial factors
+- Data sync logs
+- `DataProvider` abstraction with `MockDataProvider`
+- Repository Pattern with Prisma transaction based upserts
+- Data quality checks
+- Forward and backward adjusted price calculation
+- BullMQ data queue
 
-- `POST /data/daily-bars/sync`：触发日线行情同步任务。
+Detailed documentation: [docs/data-module.md](docs/data-module.md)
 
-请求示例：
+Main data APIs:
 
-```json
-{
-  "tsCode": "000001.SZ",
-  "fromDate": "2026-01-01",
-  "toDate": "2026-05-14"
-}
+- `GET /data/stocks`
+- `GET /data/stocks/:symbol`
+- `GET /data/calendar?startDate=&endDate=`
+- `GET /data/bars/daily?symbol=&startDate=&endDate=&adjustment=`
+- `GET /data/bars/index?indexCode=&startDate=&endDate=`
+- `GET /data/limit-prices?tradeDate=`
+- `GET /data/suspensions?tradeDate=`
+- `GET /data/financial-factors?symbol=`
+- `POST /data/sync/stocks`
+- `POST /data/sync/daily-bars`
+- `POST /data/sync/all`
+- `POST /data/quality/check`
+
+Run mock data sync:
+
+```powershell
+Invoke-RestMethod -Uri http://localhost:3000/data/sync/all `
+  -Method Post `
+  -ContentType 'application/json' `
+  -Body '{"startDate":"2026-05-11","endDate":"2026-05-15"}'
 ```
 
-## 质量约束
+Run a quality check:
 
-- TypeScript strict mode。
-- ESLint 禁止显式 `any`。
-- DTO 使用 `class-validator` 校验。
-- 数据库写入通过 Repository 和 Prisma transaction 进入。
-- 关键服务包含 Nest Logger。
+```powershell
+Invoke-RestMethod -Uri http://localhost:3000/data/quality/check `
+  -Method Post `
+  -ContentType 'application/json' `
+  -Body '{"symbol":"000001","startDate":"2026-05-11","endDate":"2026-05-15"}'
+```
+
+## Phase 3: Professional A-share Backtest Engine
+
+Phase 3 adds a complete backtest loop:
+
+- Backtest task management
+- Account snapshots
+- Positions
+- Orders
+- Trades
+- Metrics
+- Matching engine
+- A-share trading rules
+- Fee model
+- Slippage model
+- Portfolio management
+- Rebalance order generation
+- Performance analysis
+- StrategyRegistry integration
+- Basic RiskService integration
+
+Detailed documentation: [docs/backtest-engine.md](docs/backtest-engine.md)
+
+Supported matching and trading rules:
+
+- Suspended stocks cannot trade
+- Limit-up stocks cannot be bought by default
+- Limit-down stocks cannot be sold by default
+- T+1 sell restriction
+- Insufficient cash rejection
+- Insufficient position rejection
+- 100-share lot-size rule
+- Minimum commission
+- Commission, stamp duty, and transfer fee
+- Slippage
+- Market and limit order model
+
+Main backtest APIs:
+
+- `POST /backtests`
+- `GET /backtests`
+- `GET /backtests/:id`
+- `GET /backtests/:id/orders`
+- `GET /backtests/:id/trades`
+- `GET /backtests/:id/positions`
+- `GET /backtests/:id/snapshots`
+- `GET /backtests/:id/metrics`
+- `DELETE /backtests/:id`
+
+Run a mock backtest:
+
+```powershell
+Invoke-RestMethod -Uri http://localhost:3000/backtests `
+  -Method Post `
+  -ContentType 'application/json' `
+  -Body '{"name":"Phase 3 Mock Backtest","strategyName":"equal_weight_mock","startDate":"2026-05-11","endDate":"2026-05-15","initialCapital":1000000,"benchmark":"000300.SH","rebalanceFrequency":1,"maxPositions":2,"maxPositionWeight":0.5,"commissionRate":0.00025,"slippageRate":0.0005,"priceMode":"CLOSE"}'
+```
+
+## Quality Gates
+
+```powershell
+pnpm build
+pnpm test
+pnpm lint
+pnpm prisma:validate
+```
+
+Current verified state:
+
+- `pnpm build`: passing
+- `pnpm test`: passing
+- `pnpm lint`: passing
+- `pnpm prisma:validate`: passing
+- Prisma migrations: applied locally
+
+## Project Layout
+
+```text
+src/
+  modules/
+    data/
+    strategy/
+    backtest/
+    risk/
+    trading/
+    notification/
+    portfolio/
+  common/
+  config/
+  database/
+  utils/
+  scripts/
+```
+
+## Notes
+
+- `.env` is intentionally ignored.
+- Use `.env.example` as the configuration template.
+- All database writes should go through repositories.
+- DTOs use `class-validator`.
+- Money and fee calculations in the backtest engine use `Decimal`.
