@@ -1,0 +1,291 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Exchange {
+  SSE
+  SZSE
+  BSE
+}
+
+enum SecurityType {
+  STOCK
+  ETF
+  INDEX
+}
+
+enum ListingStatus {
+  LISTED
+  SUSPENDED_LISTING
+  DELISTED
+}
+
+enum BarFrequency {
+  DAILY
+  MINUTE_1
+  MINUTE_5
+  MINUTE_15
+  MINUTE_30
+  MINUTE_60
+}
+
+enum CorporateActionType {
+  CASH_DIVIDEND
+  BONUS_SHARE
+  RIGHTS_ISSUE
+  SPLIT
+}
+
+enum DataSyncStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum StrategyStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum BacktestStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+model Security {
+  id            String        @id @default(uuid()) @db.Uuid
+  tsCode        String        @unique @map("ts_code") @db.VarChar(16)
+  symbol        String        @db.VarChar(12)
+  name          String        @db.VarChar(64)
+  exchange      Exchange
+  securityType  SecurityType  @map("security_type")
+  industry      String?       @db.VarChar(128)
+  area          String?       @db.VarChar(64)
+  listDate      DateTime      @map("list_date") @db.Date
+  delistDate    DateTime?     @map("delist_date") @db.Date
+  listingStatus ListingStatus @default(LISTED) @map("listing_status")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  dailyBars         DailyBar[]
+  minuteBars        MinuteBar[]
+  adjustmentFactors AdjustmentFactor[]
+  specialStatuses   SpecialStatus[]
+  corporateActions  CorporateAction[]
+
+  @@index([exchange, symbol])
+  @@index([securityType, listingStatus])
+  @@map("securities")
+}
+
+model TradingCalendar {
+  id        String   @id @default(uuid()) @db.Uuid
+  exchange  Exchange
+  tradeDate DateTime @map("trade_date") @db.Date
+  isOpen    Boolean  @map("is_open")
+  prevDate  DateTime? @map("prev_date") @db.Date
+  nextDate  DateTime? @map("next_date") @db.Date
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([exchange, tradeDate])
+  @@index([exchange, isOpen, tradeDate])
+  @@map("trading_calendars")
+}
+
+model DailyBar {
+  id            String   @id @default(uuid()) @db.Uuid
+  securityId    String   @map("security_id") @db.Uuid
+  tradeDate     DateTime @map("trade_date") @db.Date
+  open          Decimal  @db.Decimal(18, 6)
+  high          Decimal  @db.Decimal(18, 6)
+  low           Decimal  @db.Decimal(18, 6)
+  close         Decimal  @db.Decimal(18, 6)
+  previousClose Decimal  @map("previous_close") @db.Decimal(18, 6)
+  change        Decimal  @db.Decimal(18, 6)
+  pctChange     Decimal  @map("pct_change") @db.Decimal(12, 6)
+  volume        Decimal  @db.Decimal(24, 6)
+  amount        Decimal  @db.Decimal(24, 6)
+  turnoverRate  Decimal? @map("turnover_rate") @db.Decimal(12, 6)
+  volumeRatio   Decimal? @map("volume_ratio") @db.Decimal(12, 6)
+  isLimitUp     Boolean  @default(false) @map("is_limit_up")
+  isLimitDown   Boolean  @default(false) @map("is_limit_down")
+  isSuspended   Boolean  @default(false) @map("is_suspended")
+  source        String   @db.VarChar(32)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  security Security @relation(fields: [securityId], references: [id], onDelete: Restrict)
+
+  @@unique([securityId, tradeDate])
+  @@index([tradeDate])
+  @@index([securityId, tradeDate(sort: Desc)])
+  @@index([isSuspended, isLimitUp, isLimitDown])
+  @@map("daily_bars")
+}
+
+model MinuteBar {
+  id          String       @id @default(uuid()) @db.Uuid
+  securityId  String       @map("security_id") @db.Uuid
+  frequency   BarFrequency
+  startedAt   DateTime     @map("started_at") @db.Timestamptz(6)
+  open        Decimal      @db.Decimal(18, 6)
+  high        Decimal      @db.Decimal(18, 6)
+  low         Decimal      @db.Decimal(18, 6)
+  close       Decimal      @db.Decimal(18, 6)
+  volume      Decimal      @db.Decimal(24, 6)
+  amount      Decimal      @db.Decimal(24, 6)
+  source      String       @db.VarChar(32)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  security Security @relation(fields: [securityId], references: [id], onDelete: Restrict)
+
+  @@unique([securityId, frequency, startedAt])
+  @@index([frequency, startedAt])
+  @@map("minute_bars")
+}
+
+model AdjustmentFactor {
+  id         String   @id @default(uuid()) @db.Uuid
+  securityId String   @map("security_id") @db.Uuid
+  tradeDate  DateTime @map("trade_date") @db.Date
+  factor     Decimal  @db.Decimal(24, 12)
+  source     String   @db.VarChar(32)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  security Security @relation(fields: [securityId], references: [id], onDelete: Restrict)
+
+  @@unique([securityId, tradeDate])
+  @@index([tradeDate])
+  @@map("adjustment_factors")
+}
+
+model SpecialStatus {
+  id          String   @id @default(uuid()) @db.Uuid
+  securityId  String   @map("security_id") @db.Uuid
+  tradeDate   DateTime @map("trade_date") @db.Date
+  isSt        Boolean  @default(false) @map("is_st")
+  isSuspended Boolean  @default(false) @map("is_suspended")
+  limitUp     Decimal? @map("limit_up") @db.Decimal(18, 6)
+  limitDown   Decimal? @map("limit_down") @db.Decimal(18, 6)
+  reason      String?  @db.VarChar(255)
+  source      String   @db.VarChar(32)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  security Security @relation(fields: [securityId], references: [id], onDelete: Restrict)
+
+  @@unique([securityId, tradeDate])
+  @@index([tradeDate, isSt, isSuspended])
+  @@map("special_statuses")
+}
+
+model CorporateAction {
+  id            String              @id @default(uuid()) @db.Uuid
+  securityId    String              @map("security_id") @db.Uuid
+  exDate        DateTime            @map("ex_date") @db.Date
+  actionType    CorporateActionType @map("action_type")
+  cashDividend  Decimal?            @map("cash_dividend") @db.Decimal(18, 6)
+  bonusRatio    Decimal?            @map("bonus_ratio") @db.Decimal(18, 8)
+  rightsRatio   Decimal?            @map("rights_ratio") @db.Decimal(18, 8)
+  rightsPrice   Decimal?            @map("rights_price") @db.Decimal(18, 6)
+  source        String              @db.VarChar(32)
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  security Security @relation(fields: [securityId], references: [id], onDelete: Restrict)
+
+  @@index([securityId, exDate])
+  @@index([actionType, exDate])
+  @@map("corporate_actions")
+}
+
+model DataSyncJob {
+  id          String         @id @default(uuid()) @db.Uuid
+  source      String         @db.VarChar(32)
+  dataset     String         @db.VarChar(64)
+  status      DataSyncStatus @default(PENDING)
+  startedAt   DateTime?      @map("started_at") @db.Timestamptz(6)
+  finishedAt  DateTime?      @map("finished_at") @db.Timestamptz(6)
+  fromDate    DateTime?      @map("from_date") @db.Date
+  toDate      DateTime?      @map("to_date") @db.Date
+  rowCount    Int            @default(0) @map("row_count")
+  errorCode   String?        @map("error_code") @db.VarChar(64)
+  errorMessage String?       @map("error_message") @db.Text
+  metadata    Json?
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([source, dataset, status])
+  @@index([createdAt])
+  @@map("data_sync_jobs")
+}
+
+model StrategyDefinition {
+  id          String         @id @default(uuid()) @db.Uuid
+  code        String         @unique @db.VarChar(64)
+  name        String         @db.VarChar(128)
+  version     String         @db.VarChar(32)
+  status      StrategyStatus @default(DRAFT)
+  description String?        @db.Text
+  parameters  Json
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  backtestRuns BacktestRun[]
+
+  @@index([status, code])
+  @@map("strategy_definitions")
+}
+
+model BacktestRun {
+  id                  String         @id @default(uuid()) @db.Uuid
+  strategyDefinitionId String        @map("strategy_definition_id") @db.Uuid
+  status              BacktestStatus @default(PENDING)
+  startDate           DateTime       @map("start_date") @db.Date
+  endDate             DateTime       @map("end_date") @db.Date
+  initialCash         Decimal        @map("initial_cash") @db.Decimal(24, 6)
+  commissionRate      Decimal        @map("commission_rate") @db.Decimal(12, 8)
+  slippageRate        Decimal        @map("slippage_rate") @db.Decimal(12, 8)
+  annualizedReturn    Decimal?       @map("annualized_return") @db.Decimal(18, 8)
+  maxDrawdown         Decimal?       @map("max_drawdown") @db.Decimal(18, 8)
+  sharpeRatio         Decimal?       @map("sharpe_ratio") @db.Decimal(18, 8)
+  winRate             Decimal?       @map("win_rate") @db.Decimal(18, 8)
+  errorMessage        String?        @map("error_message") @db.Text
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  strategyDefinition StrategyDefinition @relation(fields: [strategyDefinitionId], references: [id], onDelete: Restrict)
+  equityCurve        BacktestEquityPoint[]
+
+  @@index([strategyDefinitionId, createdAt])
+  @@index([status, createdAt])
+  @@map("backtest_runs")
+}
+
+model BacktestEquityPoint {
+  id            String   @id @default(uuid()) @db.Uuid
+  backtestRunId String   @map("backtest_run_id") @db.Uuid
+  tradeDate     DateTime @map("trade_date") @db.Date
+  totalEquity   Decimal  @map("total_equity") @db.Decimal(24, 6)
+  cash          Decimal  @db.Decimal(24, 6)
+  marketValue   Decimal  @map("market_value") @db.Decimal(24, 6)
+  dailyReturn   Decimal  @map("daily_return") @db.Decimal(18, 8)
+  drawdown      Decimal  @db.Decimal(18, 8)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  backtestRun BacktestRun @relation(fields: [backtestRunId], references: [id], onDelete: Cascade)
+
+  @@unique([backtestRunId, tradeDate])
+  @@index([tradeDate])
+  @@map("backtest_equity_points")
+}
