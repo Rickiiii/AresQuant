@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { BacktestModule } from './modules/backtest/backtest.module';
 import { DataModule } from './modules/data/data.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { StrategyModule } from './modules/strategy/strategy.module';
 import { appConfig } from './config/app.config';
 import { validateEnvironment } from './config/env.validation';
@@ -18,6 +19,7 @@ import { DatabaseModule } from './database/database.module';
     DataModule,
     BacktestModule,
     StrategyModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

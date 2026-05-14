@@ -45,6 +45,14 @@ import { BacktestController } from './presentation/backtest.controller';
     { provide: BACKTEST_TRADE_REPOSITORY, useClass: PrismaBacktestTradeRepository },
     { provide: BACKTEST_METRIC_REPOSITORY, useClass: PrismaBacktestMetricRepository },
   ],
-  exports: [BacktestEngineService],
+  exports: [
+    BacktestEngineService,
+    BACKTEST_TASK_REPOSITORY,
+    BACKTEST_SNAPSHOT_REPOSITORY,
+    BACKTEST_POSITION_REPOSITORY,
+    BACKTEST_ORDER_REPOSITORY,
+    BACKTEST_TRADE_REPOSITORY,
+    BACKTEST_METRIC_REPOSITORY,
+  ],
 })
 export class BacktestModule {}

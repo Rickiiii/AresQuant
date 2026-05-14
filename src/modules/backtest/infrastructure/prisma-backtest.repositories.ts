@@ -149,6 +149,7 @@ export class PrismaBacktestPositionRepository implements BacktestPositionReposit
       marketValue: toDecimal(record.marketValue),
       unrealizedPnl: toDecimal(record.unrealizedPnl),
       realizedPnl: toDecimal(record.realizedPnl),
+      tradeDate: toCompactDate(record.tradeDate),
     }));
   }
 

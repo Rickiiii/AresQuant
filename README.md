@@ -1,12 +1,13 @@
 # AresQuant
 
-AresQuant 是一个基于 NestJS + Prisma 的 A 股量化交易系统。当前后端已经具备 A 股数据中心、Mock 数据源、数据质量校验、复权价格计算，以及专业回测引擎的基础能力。
+AresQuant 是一个基于 NestJS + Prisma 的 A 股量化交易系统。当前系统已经具备 A 股数据中心、Mock 数据源、数据质量校验、复权价格计算、专业回测引擎、多因子策略系统，以及 Web Dashboard 的基础能力。
 
 ## 技术栈
 
 - Node.js、TypeScript、NestJS
 - Prisma ORM、PostgreSQL
 - Redis 兼容服务，用于 BullMQ 任务队列
+- Vite、React，用于 Web Dashboard
 - Jest、ESLint
 - Swagger 文档地址：`http://localhost:3000/docs`
 
@@ -18,6 +19,9 @@ Copy-Item .env.example .env
 pnpm prisma:generate
 pnpm prisma:deploy
 pnpm start:dev
+
+# 另开终端启动 Web Dashboard
+npx pnpm@11.1.1 --filter @ares-quant/web dev
 ```
 
 本地开发默认依赖：
@@ -157,6 +161,49 @@ Phase 5 已加入正式多因子能力和 Strategy API：
 
 兼容说明：旧 Backtest 当前仍使用旧 `StrategyRegistryService` 和旧 Plugin，Phase 5 没有切换或重构旧 Backtest。
 
+## Phase 6：Web Dashboard
+
+Phase 6 已加入只读 Dashboard 聚合层和前端 Web 控制台：
+
+- `DashboardModule`
+- Dashboard Overview API
+- Dashboard Backtest list / summary API
+- Dashboard Data Center coverage API
+- Dashboard Strategy API
+- `apps/web` Vite + React + TypeScript 前端
+- 暗色量化 Dashboard UI
+- Overview、Data Center、Strategies、Backtests、Risk Monitor 多视图
+- 前端 fallback preview 数据，后端未启动时也可预览 UI
+
+详细文档：[docs/dashboard.md](docs/dashboard.md)
+
+主要 Dashboard API：
+
+- `GET /dashboard/overview`
+- `GET /dashboard/backtests`
+- `GET /dashboard/backtests/:id/summary`
+- `GET /dashboard/data-center`
+- `GET /dashboard/data-center/stocks`
+- `GET /dashboard/data-center/daily-bars/coverage`
+- `GET /dashboard/data-center/financial-factors/coverage`
+- `GET /dashboard/strategies`
+- `GET /dashboard/strategies/:code`
+- `GET /dashboard/strategies/:code/sample-signals`
+
+启动前端：
+
+```powershell
+npx pnpm@11.1.1 --filter @ares-quant/web dev
+```
+
+前端默认地址：
+
+```text
+http://localhost:5173
+```
+
+Phase 6 只做 Dashboard API 与展示层，没有进入模拟盘、实盘、Broker/QMT/PTrade、OptimizationService 或机器学习系统。
+
 当前支持的撮合和交易规则：
 
 - 停牌股票不能成交
@@ -197,6 +244,7 @@ Invoke-RestMethod -Uri http://localhost:3000/backtests `
 ```powershell
 pnpm build
 pnpm test
+npx pnpm@11.1.1 --filter @ares-quant/web build
 pnpm lint
 pnpm prisma:validate
 ```
@@ -205,6 +253,7 @@ pnpm prisma:validate
 
 - `pnpm build`：通过
 - `pnpm test`：通过
+- `npx pnpm@11.1.1 --filter @ares-quant/web build`：通过
 - `pnpm lint`：通过
 - `pnpm prisma:validate`：通过
 - Prisma migrations：已在本地应用
@@ -217,6 +266,7 @@ src/
     data/
     strategy/
     backtest/
+    dashboard/
     risk/
     trading/
     notification/
@@ -226,6 +276,8 @@ src/
   database/
   utils/
   scripts/
+apps/
+  web/
 ```
 
 ## 设计约束

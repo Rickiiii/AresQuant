@@ -63,6 +63,8 @@ export interface BacktestPositionState {
   readonly unrealizedPnl: Decimal;
   readonly realizedPnl: Decimal;
   readonly lastBuyDate?: string;
+  /** Optional snapshot date when the position is read from persisted backtest history. */
+  readonly tradeDate?: string;
 }
 
 export interface PortfolioState {
