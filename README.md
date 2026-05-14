@@ -112,6 +112,51 @@ Phase 3 已加入完整回测闭环：
 
 详细文档：[docs/backtest-engine.md](docs/backtest-engine.md)
 
+## Phase 4：Strategy 基础架构
+
+Phase 4 建立了新的正式 Strategy 架构，并与旧 Backtest 策略插件体系并存：
+
+- `BaseStrategy`
+- `StrategyService`
+- `EqualWeightStrategy`
+- `MomentumTopNStrategy`
+- `StrategyModule`
+
+旧 Backtest 仍继续使用 `StrategyRegistryService` 和旧 Plugin，不受新 Strategy 架构影响。
+
+## Phase 5：多因子系统 + Strategy API
+
+Phase 5 已加入正式多因子能力和 Strategy API：
+
+- `Factor` 接口
+- `BaseFactor`
+- `FactorRegistryService`
+- 内置因子：Momentum、Volatility、PE、PB、ROE、Turnover
+- `FactorScoreService`：支持 `rank` / `zscore` / `minmax`、factor weights、正向 / 反向因子
+- 正式 `MultiFactorStrategy`：基于 `BaseStrategy`，支持 TopN 选股和多因子加权
+- `StrategyController`
+- Strategy API DTO、Swagger 注解和测试
+
+详细文档：
+
+- [docs/factor-system.md](docs/factor-system.md)
+- [docs/strategy-api.md](docs/strategy-api.md)
+
+主要 Strategy API：
+
+- `GET /strategies`
+- `GET /strategies/:name`
+- `POST /strategies/:name/validate-config`
+- `POST /strategies/:name/signals`
+
+当前支持的新策略 code：
+
+- `equal-weight`
+- `momentum-top-n`
+- `multi-factor`
+
+兼容说明：旧 Backtest 当前仍使用旧 `StrategyRegistryService` 和旧 Plugin，Phase 5 没有切换或重构旧 Backtest。
+
 当前支持的撮合和交易规则：
 
 - 停牌股票不能成交
