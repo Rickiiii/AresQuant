@@ -102,6 +102,7 @@ function toConfig(dto: CreateBacktestDto): BacktestConfig {
     enableT1Rule: dto.enableT1Rule ?? true,
     priceMode: dto.priceMode,
     blacklist: [],
+    ...(dto.strategyConfig === undefined ? {} : { strategyConfig: dto.strategyConfig }),
   };
 }
 

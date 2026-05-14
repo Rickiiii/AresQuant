@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BacktestOrderStatus, BacktestTaskStatus, type Prisma } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 import { PrismaService } from '@/database/prisma.service';
+import type { StrategyConfig } from '@/modules/strategy/domain/strategy.types';
 import type {
   BacktestAccountSnapshotRecord,
   BacktestConfig,
@@ -271,16 +272,32 @@ export class PrismaBacktestMetricRepository implements BacktestMetricRepository 
 
 function serializeConfig(config: BacktestConfig): Prisma.InputJsonObject {
   return {
-    ...config,
+    name: config.name,
+    strategyName: config.strategyName,
+    startDate: config.startDate,
+    endDate: config.endDate,
     initialCapital: config.initialCapital.toString(),
+    ...(config.benchmark === undefined ? {} : { benchmark: config.benchmark }),
+    frequency: config.frequency,
+    rebalanceFrequency: config.rebalanceFrequency,
+    maxPositions: config.maxPositions,
     maxPositionWeight: config.maxPositionWeight.toString(),
     commissionRate: config.commissionRate.toString(),
     minCommission: config.minCommission.toString(),
     stampDutyRate: config.stampDutyRate.toString(),
     transferFeeRate: config.transferFeeRate.toString(),
     slippageRate: config.slippageRate.toString(),
+    allowBuyLimitUp: config.allowBuyLimitUp,
+    allowSellLimitDown: config.allowSellLimitDown,
+    enableT1Rule: config.enableT1Rule,
+    priceMode: config.priceMode,
     blacklist: [...config.blacklist],
+    ...(config.strategyConfig === undefined ? {} : { strategyConfig: toJsonObject(config.strategyConfig) }),
   };
+}
+
+function toJsonObject(value: StrategyConfig): Prisma.InputJsonObject {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonObject;
 }
 
 function mapTask(record: { id: string; name: string; strategyName: string; status: BacktestTaskStatus; startDate: Date; endDate: Date; initialCapital: Prisma.Decimal; benchmark: string | null; config: Prisma.JsonValue; errorMessage: string | null }): BacktestTaskRecord {
@@ -321,7 +338,12 @@ function deserializeConfig(raw: Record<string, unknown>): BacktestConfig {
     priceMode: raw.priceMode as BacktestConfig['priceMode'],
     blacklist: Array.isArray(raw.blacklist) ? raw.blacklist.map(String) : [],
     ...(typeof raw.benchmark === 'string' ? { benchmark: raw.benchmark } : {}),
+    ...(isStrategyConfig(raw.strategyConfig) ? { strategyConfig: raw.strategyConfig } : {}),
   };
+}
+
+function isStrategyConfig(value: unknown): value is StrategyConfig {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function mapOrder(record: { id: string; taskId: string; symbol: string; tradeDate: Date; side: BacktestOrderRecord['side']; orderType: BacktestOrderRecord['orderType']; price: Prisma.Decimal; quantity: number; filledQuantity: number; avgFilledPrice: Prisma.Decimal | null; status: BacktestOrderStatus; reason: string | null }): BacktestOrderRecord {

@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { BacktestOrderStatus, BacktestTaskStatus } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 import { StrategyRegistryService } from '@/modules/strategy/application/strategy-registry.service';
+import { StrategyService } from '@/modules/strategy/application/strategy.service';
 import { RiskService } from '@/modules/risk/application/risk.service';
 import {
   LIMIT_PRICE_REPOSITORY,
@@ -16,6 +17,7 @@ import {
   type TradingCalendarRepository,
 } from '@/modules/data/domain/repositories/data-center.repositories';
 import type { DailyBarRawData, LimitPriceRawData, SuspensionRawData } from '@/modules/data/domain/types/market-data.types';
+import type { FactorValue, StrategyConfig, StrategyContext, StrategyPositionSnapshot, StrategyScore } from '@/modules/strategy/domain/strategy.types';
 import {
   BACKTEST_METRIC_REPOSITORY,
   BACKTEST_ORDER_REPOSITORY,
@@ -42,6 +44,7 @@ export class BacktestEngineService {
 
   constructor(
     private readonly strategyRegistry: StrategyRegistryService,
+    private readonly strategyService: StrategyService,
     private readonly riskService: RiskService,
     private readonly portfolioService: PortfolioService,
     private readonly orderGenerator: OrderGeneratorService,
@@ -94,7 +97,7 @@ export class BacktestEngineService {
       this.portfolioService.updateMarketValue(tradeDate, bars);
 
       if (this.isRebalanceDay(index, config)) {
-        const targets = await this.generateTargets(config, tradeDate, previousDate, universe);
+        const targets = await this.generateTargets(config, tradeDate, previousDate, universe, bars);
         const filteredTargets = await this.applyRisk(config, targets, stocks, bars, tradeDate);
         await this.rebalance(taskId, config, tradeDate, bars, filteredTargets);
       }
@@ -119,7 +122,22 @@ export class BacktestEngineService {
     return dates;
   }
 
-  private async generateTargets(config: BacktestConfig, tradeDate: string, previousDate: string | undefined, universe: readonly string[]): Promise<readonly TargetPosition[]> {
+  private async generateTargets(config: BacktestConfig, tradeDate: string, previousDate: string | undefined, universe: readonly string[], bars: readonly MarketBar[]): Promise<readonly TargetPosition[]> {
+    try {
+      const strategy = this.strategyService.get(config.strategyName);
+      const context = this.buildStrategyContext(config, tradeDate, previousDate, universe, bars);
+      const signals = await strategy.generateSignals(context, this.buildStrategyConfig(config));
+      return signals.slice(0, config.maxPositions).map((signal) => ({
+        symbol: signal.securityId,
+        weight: new Decimal(signal.targetWeight),
+        reason: signal.reason,
+      }));
+    } catch (error) {
+      if (!isStrategyNotFoundError(error)) {
+        throw error;
+      }
+    }
+
     const plugin = this.strategyRegistry.get(config.strategyName);
     const signals = await plugin.generateSignals(
       { tradeDate: toDate(tradeDate), rebalanceRange: { from: toDate(config.startDate), to: toDate(config.endDate) }, universe },
@@ -130,6 +148,83 @@ export class BacktestEngineService {
       weight: new Decimal(signal.targetWeight),
       reason: signal.reason,
     }));
+  }
+
+  private buildStrategyContext(config: BacktestConfig, tradeDate: string, previousDate: string | undefined, universe: readonly string[], bars: readonly MarketBar[]): StrategyContext {
+    return {
+      tradeDate: toDate(tradeDate),
+      ...(previousDate === undefined ? {} : { previousTradeDate: toDate(previousDate) }),
+      rebalanceRange: { from: toDate(config.startDate), to: toDate(config.endDate) },
+      universe,
+      marketData: bars.map((bar) => ({
+        securityId: bar.symbol,
+        tradeDate: toDate(bar.tradeDate),
+        open: bar.open.toNumber(),
+        high: bar.high.toNumber(),
+        low: bar.low.toNumber(),
+        close: bar.close.toNumber(),
+        volume: bar.volume.toNumber(),
+        amount: bar.amount.toNumber(),
+      })),
+      momentumScores: this.buildMomentumScores(bars),
+      factorValues: this.buildFactorValues(bars),
+      positions: this.portfolioService.getCurrentPositions().map<StrategyPositionSnapshot>((position) => ({
+        securityId: position.symbol,
+        quantity: position.quantity,
+        weight: this.positionWeight(position.marketValue),
+        marketValue: position.marketValue.toNumber(),
+      })),
+    };
+  }
+
+  private buildStrategyConfig(config: BacktestConfig): StrategyConfig {
+    const defaults: StrategyConfig = {
+      maxPositions: config.maxPositions,
+      rebalanceDays: config.rebalanceFrequency,
+      normalizeMethod: 'rank',
+      factors: [{ factorCode: 'momentum', weight: 1, direction: 'positive' }],
+    };
+    return { ...defaults, ...config.strategyConfig };
+  }
+
+  private buildMomentumScores(bars: readonly MarketBar[]): readonly StrategyScore[] {
+    return bars.map((bar) => ({
+      securityId: bar.symbol,
+      score: bar.open.isZero() ? 0 : bar.close.minus(bar.open).div(bar.open).toNumber(),
+      tradeDate: toDate(bar.tradeDate),
+      source: 'backtest-market-bar',
+    }));
+  }
+
+  private buildFactorValues(bars: readonly MarketBar[]): readonly FactorValue[] {
+    return bars.flatMap((bar) => [
+      {
+        securityId: bar.symbol,
+        factorCode: 'momentum',
+        value: bar.open.isZero() ? 0 : bar.close.minus(bar.open).div(bar.open).toNumber(),
+        tradeDate: toDate(bar.tradeDate),
+      },
+      {
+        securityId: bar.symbol,
+        factorCode: 'volatility',
+        value: bar.close.isZero() ? 0 : bar.high.minus(bar.low).div(bar.close).toNumber(),
+        tradeDate: toDate(bar.tradeDate),
+      },
+      {
+        securityId: bar.symbol,
+        factorCode: 'turnover',
+        value: bar.volume.isZero() ? 0 : bar.amount.div(bar.volume).toNumber(),
+        tradeDate: toDate(bar.tradeDate),
+      },
+    ]);
+  }
+
+  private positionWeight(marketValue: Decimal): number {
+    const state = this.portfolioService.currentState();
+    if (state.totalAsset.isZero()) {
+      return 0;
+    }
+    return marketValue.div(state.totalAsset).toNumber();
   }
 
   private async applyRisk(config: BacktestConfig, targets: readonly TargetPosition[], stocks: Awaited<ReturnType<StockRepository['findAll']>>, bars: readonly MarketBar[], tradeDate: string): Promise<readonly TargetPosition[]> {
@@ -234,4 +329,8 @@ export class BacktestEngineService {
 function toDate(value: string): Date {
   const normalized = value.includes('-') ? value.replaceAll('-', '') : value;
   return new Date(Date.UTC(Number(normalized.slice(0, 4)), Number(normalized.slice(4, 6)) - 1, Number(normalized.slice(6, 8))));
+}
+
+function isStrategyNotFoundError(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith('Strategy not found:');
 }

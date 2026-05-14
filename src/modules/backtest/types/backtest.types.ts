@@ -1,5 +1,6 @@
 import type { Decimal } from 'decimal.js';
 import type { BacktestOrderSide, BacktestOrderStatus, BacktestOrderType, BacktestTaskStatus } from '@prisma/client';
+import type { StrategyConfig } from '@/modules/strategy/domain/strategy.types';
 
 export enum BacktestFrequency {
   DAILY = 'DAILY',
@@ -45,6 +46,7 @@ export interface BacktestConfig {
   readonly enableT1Rule: boolean;
   readonly priceMode: BacktestPriceMode;
   readonly blacklist: readonly string[];
+  readonly strategyConfig?: StrategyConfig;
 }
 
 export interface TargetPosition {

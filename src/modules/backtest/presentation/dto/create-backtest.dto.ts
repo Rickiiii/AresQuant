@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsNumber, IsObject, IsOptional, IsString, Max, Min } from 'class-validator';
+import type { StrategyConfig } from '@/modules/strategy/domain/strategy.types';
 import { BacktestFrequency, BacktestPriceMode } from '../../types/backtest.types';
 
 export class CreateBacktestDto {
@@ -96,4 +97,15 @@ export class CreateBacktestDto {
   @ApiProperty({ enum: BacktestPriceMode, example: BacktestPriceMode.CLOSE })
   @IsEnum(BacktestPriceMode)
   readonly priceMode!: BacktestPriceMode;
+
+  @ApiPropertyOptional({
+    example: {
+      normalizeMethod: 'rank',
+      factors: [{ factorCode: 'momentum', weight: 1, direction: 'positive' }],
+    },
+    description: 'Optional formal StrategyService config. Backtest defaults still provide maxPositions and rebalanceDays.',
+  })
+  @IsOptional()
+  @IsObject()
+  readonly strategyConfig?: StrategyConfig;
 }

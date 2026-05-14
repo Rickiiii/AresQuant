@@ -6,7 +6,7 @@ Phase 3 turns `BacktestModule` into a runnable A-share backtesting engine.
 
 Main components:
 
-- `BacktestEngineService`: orchestrates task lifecycle, trading calendar loop, strategy signals, risk filtering, orders, matching, snapshots, and metrics.
+- `BacktestEngineService`: orchestrates task lifecycle, trading calendar loop, formal strategy / legacy plugin signals, risk filtering, orders, matching, snapshots, and metrics.
 - `MatchingEngineService`: simulates A-share matching rules.
 - `PortfolioService`: manages cash, positions, T+1 availability, realized and unrealized PnL.
 - `OrderGeneratorService`: creates rebalance orders from target weights.
@@ -24,7 +24,7 @@ flowchart TD
   C --> D["Initialize portfolio"]
   D --> E["Daily loop"]
   E --> F["Update market value"]
-  F --> G["StrategyRegistry generates targets"]
+  F --> G["StrategyService formal strategy or StrategyRegistry legacy plugin generates targets"]
   G --> H["RiskService filters targets"]
   H --> I["OrderGenerator creates orders"]
   I --> J["MatchingEngine matches orders"]
@@ -33,6 +33,32 @@ flowchart TD
   L --> M["MetricsService calculates metrics"]
   M --> N["Task SUCCESS or FAILED"]
 ```
+
+## Strategy Integration
+
+Phase 7 connects the formal `StrategyService` architecture to `BacktestEngineService` while keeping legacy plugin compatibility.
+
+Resolution order:
+
+1. `BacktestEngineService` first calls `StrategyService.get(strategyName)`.
+2. If a formal strategy exists, it receives a `StrategyContext` built from the current backtest loop:
+   - universe from the stock repository
+   - current trade date and previous trade date
+   - market data converted from daily bars
+   - momentum scores derived from daily bar return
+   - lightweight factor values for `momentum`, `volatility`, and `turnover`
+   - current portfolio positions
+3. If the formal strategy is not found, the engine falls back to legacy `StrategyRegistryService` plugins.
+
+Formal strategies can be used directly in `POST /backtests` through `strategyName`:
+
+- `equal-weight`
+- `momentum-top-n`
+- `multi-factor`
+
+`strategyConfig` is optional. The engine always provides default `maxPositions`, `rebalanceDays`, `normalizeMethod: "rank"`, and a default momentum factor, then merges custom `strategyConfig` on top.
+
+Legacy strategy names such as `equal_weight_mock` remain supported.
 
 ## Matching Rules
 
@@ -110,7 +136,11 @@ Invoke-RestMethod -Uri http://localhost:3000/backtests `
     "maxPositionWeight":0.5,
     "commissionRate":0.00025,
     "slippageRate":0.0005,
-    "priceMode":"CLOSE"
+    "priceMode":"CLOSE",
+    "strategyConfig":{
+      "normalizeMethod":"rank",
+      "factors":[{"factorCode":"momentum","weight":1,"direction":"positive"}]
+    }
   }'
 ```
 

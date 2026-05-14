@@ -1,6 +1,6 @@
 # AresQuant
 
-AresQuant 是一个基于 NestJS + Prisma 的 A 股量化交易系统。当前系统已经具备 A 股数据中心、Mock 数据源、数据质量校验、复权价格计算、专业回测引擎、多因子策略系统，以及 Web Dashboard 的基础能力。
+AresQuant 是一个基于 NestJS + Prisma 的 A 股量化交易系统。当前系统已经具备 A 股数据中心、Mock 数据源、数据质量校验、复权价格计算、专业回测引擎、多因子策略系统、正式策略回测接入，以及 Web Dashboard 的基础能力。
 
 ## 技术栈
 
@@ -204,6 +204,22 @@ http://localhost:5173
 
 Phase 6 只做 Dashboard API 与展示层，没有进入模拟盘、实盘、Broker/QMT/PTrade、OptimizationService 或机器学习系统。
 
+## Phase 7：正式 Strategy 接入回测引擎
+
+Phase 7 已把正式 Strategy 架构接入 `BacktestEngineService`：
+
+- 回测引擎优先通过 `StrategyService` 查找正式策略
+- 支持在 `POST /backtests` 中直接使用正式策略 code：
+  - `equal-weight`
+  - `momentum-top-n`
+  - `multi-factor`
+- 找不到正式策略时自动回退旧 `StrategyRegistryService` plugin
+- 保留旧 `equal_weight_mock` 等旧插件兼容
+- 新增可选 `strategyConfig`，用于传入正式策略参数
+- 回测循环会向正式策略提供 universe、market data、momentum scores、factor values 和当前持仓快照
+
+Phase 7 没有进入模拟盘、实盘、Broker/QMT/PTrade、OptimizationService 或机器学习系统。
+
 当前支持的撮合和交易规则：
 
 - 停牌股票不能成交
@@ -287,4 +303,4 @@ apps/
 - 所有数据库写入必须通过 Repository。
 - DTO 使用 `class-validator` 校验。
 - 回测引擎中的资金、费用和价格计算使用 `Decimal`，避免浮点误差。
-- 策略通过 StrategyRegistry 注册和获取，回测引擎不直接依赖具体策略实现。
+- 策略优先通过正式 `StrategyService` 注册和获取，回测引擎找不到正式策略时回退旧 `StrategyRegistryService` 插件。
