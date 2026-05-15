@@ -28,6 +28,7 @@ import {
   PrismaTradingCalendarRepository,
 } from './infrastructure/repositories/prisma-data-center.repositories';
 import { DATA_PROVIDER } from './providers/data-provider.interface';
+import { EastmoneyDataProvider } from './providers/eastmoney/eastmoney-data-provider';
 import { MockDataProvider } from './providers/mock/mock-data-provider';
 import { DataQueueProcessor } from './queue/data-queue.processor';
 import { DataQueueModule } from './queue/data-queue.module';
@@ -43,9 +44,10 @@ import { DataController } from './presentation/data.controller';
     AdjustmentService,
     DataQueueProcessor,
     MockDataProvider,
+    EastmoneyDataProvider,
     {
       provide: DATA_PROVIDER,
-      useClass: MockDataProvider,
+      useClass: resolveDataProviderClass(),
     },
     {
       provide: DAILY_BAR_REPOSITORY,
@@ -78,3 +80,7 @@ import { DataController } from './presentation/data.controller';
   ],
 })
 export class DataModule {}
+
+export function resolveDataProviderClass(): typeof MockDataProvider | typeof EastmoneyDataProvider {
+  return process.env.DATA_PROVIDER?.toLowerCase() === 'eastmoney' ? EastmoneyDataProvider : MockDataProvider;
+}

@@ -1,6 +1,6 @@
 # AresQuant
 
-AresQuant 是一个基于 NestJS + Prisma 的 A 股量化交易系统。当前系统已经具备 A 股数据中心、Mock 数据源、数据质量校验、复权价格计算、专业回测引擎、多因子策略系统、正式策略回测接入，以及 Web Dashboard 的基础能力。
+AresQuant 是一个基于 NestJS + Prisma 的 A 股量化交易系统。当前系统已经具备 A 股数据中心、Mock 数据源、东方财富真实数据源基础接入、数据质量校验、复权价格计算、专业回测引擎、多因子策略系统、正式策略回测接入，以及 Web Dashboard 的基础能力。
 
 ## 技术栈
 
@@ -219,6 +219,21 @@ Phase 7 已把正式 Strategy 架构接入 `BacktestEngineService`：
 - 回测循环会向正式策略提供 universe、market data、momentum scores、factor values 和当前持仓快照
 
 Phase 7 没有进入模拟盘、实盘、Broker/QMT/PTrade、OptimizationService 或机器学习系统。
+
+## Phase 8：东方财富真实数据源基础接入
+
+Phase 8 Step 1 已加入 `EastmoneyDataProvider`，用于在本地没有历史数据文件时从东方财富公开 Web 接口拉取基础研究数据：
+
+- `DATA_PROVIDER=mock`：默认 Mock 数据源
+- `DATA_PROVIDER=eastmoney`：启用东方财富数据源
+- 支持 A 股股票列表
+- 支持股票日线 K 线
+- 支持指数日线 K 线
+- 通过沪深 300 指数 K 线推导交易日历
+
+详细文档：[docs/eastmoney-data-provider.md](docs/eastmoney-data-provider.md)
+
+当前东方财富接入仅用于研究/回测数据补全，不作为生产交易数据源；涨跌停、停复牌、复权因子和财务因子后续单独扩展。
 
 当前支持的撮合和交易规则：
 

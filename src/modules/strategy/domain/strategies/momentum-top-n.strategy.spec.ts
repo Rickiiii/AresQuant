@@ -12,7 +12,9 @@ function contextWith(overrides: Partial<StrategyContext>): StrategyContext {
 describe('MomentumTopNStrategy', () => {
   it('returns empty signals when momentumScores is missing', async () => {
     const strategy = new MomentumTopNStrategy();
-    const { momentumScores: _momentumScores, ...context } = mockStrategyContext;
+    const context = Object.fromEntries(
+      Object.entries(mockStrategyContext).filter(([key]) => key !== 'momentumScores'),
+    ) as unknown as StrategyContext;
 
     const signals = await strategy.generateSignals(context, { maxPositions: 2 });
 
