@@ -23,6 +23,19 @@ import {
   type TradingCalendarRepository,
 } from '../../domain/repositories/data-center.repositories';
 
+export interface EastmoneySmokeCheckItem {
+  readonly name: 'stocks' | 'dailyBars' | 'indexDailyBars' | 'limitPrices' | 'financialFactors';
+  readonly status: 'SUCCESS' | 'FAILED';
+  readonly sampleCount: number;
+  readonly errorMessage?: string;
+}
+
+export interface EastmoneySmokeCheckResult {
+  readonly provider: 'eastmoney';
+  readonly status: 'SUCCESS' | 'FAILED';
+  readonly checks: readonly EastmoneySmokeCheckItem[];
+}
+
 @Injectable()
 export class DataSyncService {
   private readonly logger = new Logger(DataSyncService.name);
@@ -96,6 +109,24 @@ export class DataSyncService {
     });
   }
 
+  async smokeCheckEastmoney(): Promise<EastmoneySmokeCheckResult> {
+    const stockSymbol = process.env.EASTMONEY_SMOKE_SYMBOL ?? '000001';
+    const tradeDate = normalizeDate(process.env.EASTMONEY_SMOKE_DATE ?? latestPastWeekday(new Date()));
+    const checks: EastmoneySmokeCheckItem[] = [];
+
+    checks.push(await this.runSmokeCheck('stocks', async () => this.provider.getStocks()));
+    checks.push(await this.runSmokeCheck('dailyBars', async () => this.provider.getDailyBars(stockSymbol, tradeDate, tradeDate)));
+    checks.push(await this.runSmokeCheck('indexDailyBars', async () => this.provider.getIndexDailyBars('000300.SH', tradeDate, tradeDate)));
+    checks.push(await this.runSmokeCheck('limitPrices', async () => this.provider.getLimitPrices(tradeDate)));
+    checks.push(await this.runSmokeCheck('financialFactors', async () => this.provider.getFinancialFactors(stockSymbol)));
+
+    return {
+      provider: 'eastmoney',
+      status: checks.every((check) => check.status === 'SUCCESS') ? 'SUCCESS' : 'FAILED',
+      checks,
+    };
+  }
+
   async syncAll(startDate: string, endDate: string): Promise<readonly DataSyncResult[]> {
     const stockResult = await this.syncStocks();
     const stocks = await this.stockRepository.findAll();
@@ -149,6 +180,20 @@ export class DataSyncService {
     });
   }
 
+  private async runSmokeCheck(
+    name: EastmoneySmokeCheckItem['name'],
+    handler: () => Promise<readonly unknown[]>,
+  ): Promise<EastmoneySmokeCheckItem> {
+    try {
+      const records = await handler();
+      return { name, status: 'SUCCESS', sampleCount: records.length };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Eastmoney smoke check failed: ${name} ${message}`);
+      return { name, status: 'FAILED', sampleCount: 0, errorMessage: message };
+    }
+  }
+
   private async runTask(
     taskName: string,
     dataType: string,
@@ -196,6 +241,19 @@ export class DataSyncService {
       return { taskName, dataType, status: 'FAILED', totalCount: 0, successCount: 0, failedCount: 1, errorMessage: message };
     }
   }
+}
+
+function normalizeDate(value: string): string {
+  return value.includes('-') ? value.replaceAll('-', '') : value;
+}
+
+function latestPastWeekday(today: Date): string {
+  const current = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  current.setUTCDate(current.getUTCDate() - 1);
+  while (current.getUTCDay() === 0 || current.getUTCDay() === 6) {
+    current.setUTCDate(current.getUTCDate() - 1);
+  }
+  return toCompactDate(current);
 }
 
 function compactDateRange(startDate: string, endDate: string): readonly string[] {

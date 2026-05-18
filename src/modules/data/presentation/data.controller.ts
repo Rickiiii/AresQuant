@@ -3,7 +3,7 @@ import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { ok, type ApiResponse } from '@/common/types/api-response';
 import { AdjustmentService } from '../application/services/adjustment.service';
 import { DataQualityService } from '../application/services/data-quality.service';
-import { DataSyncService } from '../application/services/data-sync.service';
+import { DataSyncService, type EastmoneySmokeCheckResult } from '../application/services/data-sync.service';
 import {
   ADJ_FACTOR_REPOSITORY,
   FINANCIAL_FACTOR_REPOSITORY,
@@ -132,6 +132,12 @@ export class DataController {
   @HttpCode(HttpStatus.OK)
   async syncAll(@Body() dto: SyncAllRequestDto): Promise<ApiResponse<readonly DataSyncResult[]>> {
     return ok(await this.dataSyncService.syncAll(normalizeDate(dto.startDate), normalizeDate(dto.endDate)));
+  }
+
+  @Post('sync/eastmoney/smoke-check')
+  @HttpCode(HttpStatus.OK)
+  async smokeCheckEastmoney(): Promise<ApiResponse<EastmoneySmokeCheckResult>> {
+    return ok(await this.dataSyncService.smokeCheckEastmoney());
   }
 
   @Post('quality/check')

@@ -37,6 +37,31 @@ describe('DataController', () => {
     const controller = moduleRef.get(DataController);
     await expect(controller.getStocks()).resolves.toMatchObject({ success: true, data: [{ symbol: '000001' }] });
   });
+
+  it('exposes eastmoney smoke check through the sync API', async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [DataController],
+      providers: [
+        provider(DataSyncService, { smokeCheckEastmoney: jest.fn().mockResolvedValue({ provider: 'eastmoney', status: 'SUCCESS', checks: [] }) }),
+        provider(DataQualityService, { checkDailyBars: jest.fn() }),
+        provider(AdjustmentService, { getForwardAdjustedBars: jest.fn(), getBackwardAdjustedBars: jest.fn() }),
+        provider(STOCK_REPOSITORY, { findAll: jest.fn(), findBySymbol: jest.fn() }),
+        provider(TRADING_CALENDAR_REPOSITORY, { findByDateRange: jest.fn() }),
+        provider(PHASE2_DAILY_BAR_REPOSITORY, { findByDateRange: jest.fn() }),
+        provider(INDEX_DAILY_BAR_REPOSITORY, { findByDateRange: jest.fn() }),
+        provider(LIMIT_PRICE_REPOSITORY, { findByTradeDate: jest.fn() }),
+        provider(SUSPENSION_REPOSITORY, { findByTradeDate: jest.fn() }),
+        provider(ADJ_FACTOR_REPOSITORY, { findBySymbol: jest.fn() }),
+        provider(FINANCIAL_FACTOR_REPOSITORY, { findBySymbol: jest.fn() }),
+      ],
+    }).compile();
+
+    const controller = moduleRef.get(DataController);
+    await expect(controller.smokeCheckEastmoney()).resolves.toMatchObject({
+      success: true,
+      data: { provider: 'eastmoney', status: 'SUCCESS', checks: [] },
+    });
+  });
 });
 
 function provider(token: InjectionToken, useValue: object): Provider {

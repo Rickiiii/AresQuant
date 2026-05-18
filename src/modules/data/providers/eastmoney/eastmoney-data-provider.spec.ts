@@ -110,6 +110,50 @@ describe('EastmoneyDataProvider', () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
+  it('computes limit prices from Eastmoney pre-close rows', async () => {
+    const provider = new EastmoneyDataProvider(fakeFetch({
+      rc: 0,
+      data: {
+        diff: [
+          { f12: '000001', f14: '平安银行', f18: 10 },
+          { f12: '300750', f14: '宁德时代', f18: 200 },
+          { f12: '600000', f14: 'ST浦发', f18: 7.33 },
+        ],
+      },
+    }));
+
+    await expect(provider.getLimitPrices('20240506')).resolves.toEqual([
+      { symbol: '000001', tradeDate: '20240506', upLimit: 11, downLimit: 9 },
+      { symbol: '300750', tradeDate: '20240506', upLimit: 240, downLimit: 160 },
+      { symbol: '600000', tradeDate: '20240506', upLimit: 7.7, downLimit: 6.96 },
+    ]);
+  });
+
+  it('maps Eastmoney valuation snapshot to financial factors', async () => {
+    const provider = new EastmoneyDataProvider(fakeFetch({
+      rc: 0,
+      data: {
+        diff: [{
+          f12: '000001',
+          f9: 5.8,
+          f23: 0.62,
+          f115: 1.9,
+        }],
+      },
+    }));
+
+    await expect(provider.getFinancialFactors('000001')).resolves.toEqual([
+      {
+        symbol: '000001',
+        reportDate: '00000000',
+        annDate: '00000000',
+        pe: 5.8,
+        pb: 0.62,
+        ps: 1.9,
+      },
+    ]);
+  });
+
   it('adds an abort signal to Eastmoney requests so slow public endpoints can timeout', async () => {
     const fetcher = jest.fn().mockResolvedValue(fakeResponse({
       rc: 0,

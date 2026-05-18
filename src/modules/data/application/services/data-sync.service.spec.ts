@@ -45,6 +45,45 @@ describe('DataSyncService', () => {
     expect(result.status).toBe('SUCCESS');
     expect(logRepository.update).toHaveBeenCalledWith('log-1', expect.objectContaining({ status: DataSyncLogStatus.SUCCESS }));
   });
+
+  it('runs an eastmoney smoke check without writing repositories', async () => {
+    const provider: DataProvider = {
+      getStocks: jest.fn().mockResolvedValue([{ symbol: '000001', tsCode: '000001.SZ', name: '平安银行', exchange: Exchange.SZSE, market: '主板', listDate: '19910403', isActive: true, isST: false }]),
+      getTradingCalendar: jest.fn(),
+      getDailyBars: jest.fn().mockResolvedValue([{ symbol: '000001', tradeDate: '20240506' }]),
+      getIndexDailyBars: jest.fn().mockResolvedValue([{ indexCode: '000300.SH', tradeDate: '20240506' }]),
+      getLimitPrices: jest.fn().mockResolvedValue([{ symbol: '000001', tradeDate: '20240506' }]),
+      getSuspensions: jest.fn(),
+      getAdjFactors: jest.fn(),
+      getFinancialFactors: jest.fn().mockResolvedValue([{ symbol: '000001', reportDate: '00000000', annDate: '00000000' }]),
+    };
+    const stockRepository = { upsertMany: jest.fn(), findAll: jest.fn(), findBySymbol: jest.fn(), findByDateRange: jest.fn(), findLatestDate: jest.fn(), count: jest.fn(), deleteByDateRange: jest.fn() } as unknown as StockRepository;
+    const service = new DataSyncService(
+      provider,
+      stockRepository,
+      emptyRepository<TradingCalendarRepository>(),
+      emptyRepository<Phase2DailyBarRepository>(),
+      emptyRepository<IndexDailyBarRepository>(),
+      emptyRepository<LimitPriceRepository>(),
+      emptyRepository<SuspensionRepository>(),
+      emptyRepository<AdjFactorRepository>(),
+      emptyRepository<FinancialFactorRepository>(),
+      emptyRepository<DataSyncLogRepository>(),
+    );
+
+    await expect(service.smokeCheckEastmoney()).resolves.toEqual({
+      provider: 'eastmoney',
+      status: 'SUCCESS',
+      checks: [
+        { name: 'stocks', status: 'SUCCESS', sampleCount: 1 },
+        { name: 'dailyBars', status: 'SUCCESS', sampleCount: 1 },
+        { name: 'indexDailyBars', status: 'SUCCESS', sampleCount: 1 },
+        { name: 'limitPrices', status: 'SUCCESS', sampleCount: 1 },
+        { name: 'financialFactors', status: 'SUCCESS', sampleCount: 1 },
+      ],
+    });
+    expect(stockRepository.upsertMany).not.toHaveBeenCalled();
+  });
 });
 
 function emptyRepository<T>(): T {

@@ -20,6 +20,7 @@ const EASTMONEY_MAX_ATTEMPTS = 2;
 type EastmoneyStockRow = {
   readonly f12?: string;
   readonly f14?: string;
+  readonly f18?: number | string;
 };
 
 class NonRetriableEastmoneyRequestError extends Error {}
@@ -40,10 +41,28 @@ type EastmoneyKlinePayload = {
   } | null;
 };
 
+type EastmoneySnapshotPayload = {
+  readonly rc?: number;
+  readonly data?: {
+    readonly diff?: readonly EastmoneyFinancialRow[];
+  } | null;
+};
+
+type EastmoneyFinancialRow = {
+  readonly f12?: string;
+  readonly f57?: string;
+  readonly f9?: number | string;
+  readonly f23?: number | string;
+  readonly f162?: number | string;
+  readonly f167?: number | string;
+  readonly f115?: number | string;
+};
+
 @Injectable()
 export class EastmoneyDataProvider implements DataProvider {
   private readonly baseListUrl = 'https://push2.eastmoney.com/api/qt/clist/get';
   private readonly baseKlineUrl = 'https://push2his.eastmoney.com/api/qt/stock/kline/get';
+  private readonly baseSnapshotUrl = 'https://push2.eastmoney.com/api/qt/clist/get';
 
   constructor(private readonly fetcher: FetchLike = fetch) {}
 
@@ -83,8 +102,14 @@ export class EastmoneyDataProvider implements DataProvider {
     return payload.data.klines.map((line, index, lines) => mapIndexKline(indexCode, line, index, lines));
   }
 
-  async getLimitPrices(_tradeDate: string): Promise<readonly LimitPriceRawData[]> {
-    return [];
+  async getLimitPrices(tradeDate: string): Promise<readonly LimitPriceRawData[]> {
+    const payload = await this.getJson<EastmoneyListPayload>(this.buildLimitPriceListUrl());
+    if (!Array.isArray(payload.data?.diff)) {
+      throw new Error('Invalid Eastmoney limit price response');
+    }
+    return payload.data.diff
+      .map((row) => mapLimitPrice(row, normalizeDate(tradeDate)))
+      .filter((row): row is LimitPriceRawData => row !== undefined);
   }
 
   async getSuspensions(_tradeDate: string): Promise<readonly SuspensionRawData[]> {
@@ -95,8 +120,26 @@ export class EastmoneyDataProvider implements DataProvider {
     return [];
   }
 
-  async getFinancialFactors(_symbol: string): Promise<readonly FinancialFactorRawData[]> {
-    return [];
+  async getFinancialFactors(symbol: string): Promise<readonly FinancialFactorRawData[]> {
+    const payload = await this.getJson<EastmoneySnapshotPayload>(this.buildSnapshotUrl(symbol));
+    const row = payload.data?.diff?.find((item) => item.f12 === symbol || item.f57 === symbol);
+    if (row === undefined) {
+      throw new Error(`Invalid Eastmoney financial factor response: ${symbol}`);
+    }
+    const pe = toOptionalNumber(row.f9 ?? row.f162);
+    const pb = toOptionalNumber(row.f23 ?? row.f167);
+    const ps = toOptionalNumber(row.f115);
+    if (pe === undefined && pb === undefined && ps === undefined) {
+      return [];
+    }
+    return [{
+      symbol: row.f57 ?? row.f12 ?? symbol,
+      reportDate: '00000000',
+      annDate: '00000000',
+      ...(pe === undefined ? {} : { pe }),
+      ...(pb === undefined ? {} : { pb }),
+      ...(ps === undefined ? {} : { ps }),
+    }];
   }
 
   private async getJson<T>(url: string): Promise<T> {
@@ -151,6 +194,38 @@ export class EastmoneyDataProvider implements DataProvider {
       fields: 'f12,f14',
     });
     return `${this.baseListUrl}?${params.toString()}`;
+  }
+
+  private buildLimitPriceListUrl(): string {
+    const params = new URLSearchParams({
+      pn: '1',
+      pz: '5000',
+      po: '1',
+      np: '1',
+      ut: 'bd1d9ddb04089700cf9c27f6f7426281',
+      fltt: '2',
+      invt: '2',
+      fid: 'f3',
+      fs: 'm:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23',
+      fields: 'f12,f14,f18',
+    });
+    return `${this.baseListUrl}?${params.toString()}`;
+  }
+
+  private buildSnapshotUrl(_symbol: string): string {
+    const params = new URLSearchParams({
+      pn: '1',
+      pz: '5000',
+      po: '1',
+      np: '1',
+      ut: 'bd1d9ddb04089700cf9c27f6f7426281',
+      fltt: '2',
+      invt: '2',
+      fid: 'f3',
+      fs: 'm:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23',
+      fields: 'f12,f14,f9,f23,f115,f162,f167',
+    });
+    return `${this.baseSnapshotUrl}?${params.toString()}`;
   }
 
   private buildKlineUrl(secId: string, startDate: string, endDate: string): string {
@@ -223,6 +298,36 @@ function mapIndexKline(indexCode: string, line: string, index: number, lines: re
     volume: parsed.volume,
     amount: parsed.amount,
   };
+}
+
+function mapLimitPrice(row: EastmoneyStockRow, tradeDate: string): LimitPriceRawData | undefined {
+  if (row.f12 === undefined || row.f14 === undefined || row.f18 === undefined) {
+    return undefined;
+  }
+  const preClose = toOptionalNumber(row.f18);
+  if (preClose === undefined || exchangeForSymbol(row.f12) === undefined) {
+    return undefined;
+  }
+  const ratio = limitRatioForStock(row.f12, row.f14);
+  return {
+    symbol: row.f12,
+    tradeDate,
+    upLimit: roundPrice(preClose * (1 + ratio)),
+    downLimit: roundPrice(preClose * (1 - ratio)),
+  };
+}
+
+function limitRatioForStock(symbol: string, name: string): number {
+  if (name.includes('ST')) {
+    return 0.05;
+  }
+  if (symbol.startsWith('300') || symbol.startsWith('301') || symbol.startsWith('688') || symbol.startsWith('689')) {
+    return 0.2;
+  }
+  if (symbol.startsWith('8') || symbol.startsWith('4')) {
+    return 0.3;
+  }
+  return 0.1;
 }
 
 function parseKline(line: string): {
@@ -309,6 +414,18 @@ function toNumber(value: string): number {
     throw new Error(`Invalid Eastmoney numeric value: ${value}`);
   }
   return parsed;
+}
+
+function toOptionalNumber(value: number | string | undefined): number | undefined {
+  if (value === undefined || value === '-' || value === '') {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function roundPrice(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function shouldRetryHttpStatus(status: number): boolean {
