@@ -222,7 +222,7 @@ Phase 7 没有进入模拟盘、实盘、Broker/QMT/PTrade、OptimizationService
 
 ## Phase 8：东方财富真实数据源基础接入
 
-Phase 8 Step 1 已加入 `EastmoneyDataProvider`，用于在本地没有历史数据文件时从东方财富公开 Web 接口拉取基础研究数据：
+Phase 8 Step 1 已加入 `EastmoneyDataProvider`，用于在本地没有历史数据文件时从东方财富公开 Web 接口拉取基础研究数据。Phase 8 Step 2 已为东方财富请求增加 8 秒超时、瞬时网络异常重试和 429/5xx 响应重试：
 
 - `DATA_PROVIDER=mock`：默认 Mock 数据源
 - `DATA_PROVIDER=eastmoney`：启用东方财富数据源

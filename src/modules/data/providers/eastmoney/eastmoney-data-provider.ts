@@ -14,10 +14,15 @@ import type {
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
+const EASTMONEY_REQUEST_TIMEOUT_MS = 8000;
+const EASTMONEY_MAX_ATTEMPTS = 2;
+
 type EastmoneyStockRow = {
   readonly f12?: string;
   readonly f14?: string;
 };
+
+class NonRetriableEastmoneyRequestError extends Error {}
 
 type EastmoneyListPayload = {
   readonly rc?: number;
@@ -95,17 +100,41 @@ export class EastmoneyDataProvider implements DataProvider {
   }
 
   private async getJson<T>(url: string): Promise<T> {
-    const response = await this.fetcher(url, {
-      headers: {
-        Accept: 'application/json,text/plain,*/*',
-        'User-Agent': 'Mozilla/5.0 AresQuant/0.1 EastmoneyDataProvider',
-        Referer: 'https://quote.eastmoney.com/',
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`Eastmoney request failed: HTTP ${response.status}`);
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= EASTMONEY_MAX_ATTEMPTS; attempt += 1) {
+      const abortController = new AbortController();
+      const timeout = setTimeout(() => abortController.abort(), EASTMONEY_REQUEST_TIMEOUT_MS);
+
+      try {
+        const response = await this.fetcher(url, {
+          headers: {
+            Accept: 'application/json,text/plain,*/*',
+            'User-Agent': 'Mozilla/5.0 AresQuant/0.1 EastmoneyDataProvider',
+            Referer: 'https://quote.eastmoney.com/',
+          },
+          signal: abortController.signal,
+        });
+        if (!response.ok) {
+          const error = new Error(`Eastmoney request failed: HTTP ${response.status}`);
+          if (!shouldRetryHttpStatus(response.status) || attempt === EASTMONEY_MAX_ATTEMPTS) {
+            throw new NonRetriableEastmoneyRequestError(error.message);
+          }
+          lastError = error;
+          continue;
+        }
+        return response.json() as Promise<T>;
+      } catch (error) {
+        lastError = error;
+        if (error instanceof NonRetriableEastmoneyRequestError || attempt === EASTMONEY_MAX_ATTEMPTS) {
+          throw error;
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
     }
-    return response.json() as Promise<T>;
+
+    throw lastError instanceof Error ? lastError : new Error('Eastmoney request failed');
   }
 
   private buildStockListUrl(): string {
@@ -280,6 +309,10 @@ function toNumber(value: string): number {
     throw new Error(`Invalid Eastmoney numeric value: ${value}`);
   }
   return parsed;
+}
+
+function shouldRetryHttpStatus(status: number): boolean {
+  return status === 429 || status >= 500;
 }
 
 function mustGet<T>(items: readonly T[], index: number): T {

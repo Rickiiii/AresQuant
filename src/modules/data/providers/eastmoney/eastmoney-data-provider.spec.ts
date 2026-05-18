@@ -80,6 +80,53 @@ describe('EastmoneyDataProvider', () => {
     ]);
   });
 
+  it('retries a transient Eastmoney request failure before mapping stock rows', async () => {
+    const fetcher = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('socket hang up'))
+      .mockResolvedValueOnce(fakeResponse({
+        rc: 0,
+        data: {
+          diff: [{ f12: '000001', f14: '平安银行' }],
+        },
+      }));
+    const provider = new EastmoneyDataProvider(fetcher as unknown as typeof fetch);
+
+    await expect(provider.getStocks()).resolves.toEqual([
+      expect.objectContaining({ symbol: '000001', name: '平安银行' }),
+    ]);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry non-transient Eastmoney HTTP failures', async () => {
+    const fetcher = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({}),
+    } satisfies FakeResponse);
+    const provider = new EastmoneyDataProvider(fetcher as unknown as typeof fetch);
+
+    await expect(provider.getStocks()).rejects.toThrow('Eastmoney request failed: HTTP 400');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('adds an abort signal to Eastmoney requests so slow public endpoints can timeout', async () => {
+    const fetcher = jest.fn().mockResolvedValue(fakeResponse({
+      rc: 0,
+      data: {
+        diff: [{ f12: '000001', f14: '平安银行' }],
+      },
+    }));
+    const provider = new EastmoneyDataProvider(fetcher as unknown as typeof fetch);
+
+    await provider.getStocks();
+
+    expect(fetcher).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
   it('fails fast when Eastmoney returns an invalid payload', async () => {
     const provider = new EastmoneyDataProvider(fakeFetch({ rc: 0, data: null }));
 
@@ -94,9 +141,13 @@ type FakeResponse = {
 };
 
 function fakeFetch(payload: unknown): typeof fetch {
-  return jest.fn().mockResolvedValue({
+  return jest.fn().mockResolvedValue(fakeResponse(payload)) as unknown as typeof fetch;
+}
+
+function fakeResponse(payload: unknown): FakeResponse {
+  return {
     ok: true,
     status: 200,
     json: async () => payload,
-  } satisfies FakeResponse) as unknown as typeof fetch;
+  } satisfies FakeResponse;
 }

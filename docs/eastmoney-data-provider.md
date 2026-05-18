@@ -2,6 +2,8 @@
 
 Phase 8 Step 1 为 AresQuant 增加 `EastmoneyDataProvider`，用于在本地没有历史数据文件的情况下，从东方财富公开 Web 接口拉取基础研究/回测数据。
 
+Phase 8 Step 2 为东方财富公开接口请求增加基础韧性：请求超时控制、瞬时网络失败重试，以及 429/5xx 响应重试，降低公开接口偶发断连对研究数据同步的影响。
+
 > 范围边界：本阶段只接入真实行情数据源，不进入模拟盘、实盘、Broker/QMT/PTrade、OptimizationService 或机器学习系统。
 
 ## 数据源切换
@@ -31,6 +33,9 @@ DATA_PROVIDER=eastmoney
 - `getDailyBars(symbol, startDate, endDate)`：股票日线 K 线
 - `getIndexDailyBars(indexCode, startDate, endDate)`：指数日线 K 线
 - `getTradingCalendar(startDate, endDate)`：基于沪深 300 指数 K 线推导开市日期
+- 东方财富请求默认 8 秒超时
+- 瞬时网络异常最多重试 1 次
+- HTTP 429 / 5xx 响应最多重试 1 次
 
 当前保守返回空数组的接口：
 
