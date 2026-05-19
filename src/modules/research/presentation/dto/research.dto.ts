@@ -98,6 +98,16 @@ export class ResearchPortfolioContextDto {
   readonly actionPolicy!: ResearchActionPolicyDto;
 }
 
+export class ResearchThemeExposureSummaryDto {
+  readonly theme!: string;
+  readonly source!: 'stock' | 'fund' | 'mixed';
+  readonly amount!: number | null;
+  readonly weightPercent!: number | null;
+  readonly actionBias!: ResearchAction;
+  readonly riskNote!: string;
+  readonly nextStep!: string;
+}
+
 export class ResearchFactorBreakdownDto {
   readonly factor!: string;
   readonly signal!: string;

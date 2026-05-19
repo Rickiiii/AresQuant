@@ -9,6 +9,7 @@ import {
   ResearchPlaybookDto,
   ResearchPortfolioContextDto,
   ResearchPortfolioReviewDto,
+  ResearchThemeExposureSummaryDto,
   ResearchThesisDto,
 } from './dto/research.dto';
 
@@ -43,6 +44,13 @@ export class ResearchController {
   @ApiOkResponse({ type: ResearchPortfolioContextDto })
   portfolioContext(): ApiResponse<ResearchPortfolioContextDto> {
     return ok(this.researchService.getPortfolioContext());
+  }
+
+  @Get('theme-exposures')
+  @ApiOperation({ summary: 'List portfolio theme exposure summary with action bias' })
+  @ApiOkResponse({ type: [ResearchThemeExposureSummaryDto] })
+  themeExposures(): ApiResponse<readonly ResearchThemeExposureSummaryDto[]> {
+    return ok(this.researchService.listThemeExposures());
   }
 
   @Get('ideas')

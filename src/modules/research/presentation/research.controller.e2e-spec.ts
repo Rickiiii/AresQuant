@@ -91,6 +91,22 @@ describe('ResearchController', () => {
     expect(response.data.riskFlags.length).toBeGreaterThanOrEqual(2);
   });
 
+  it('returns theme exposure summary with concentration and actions', async () => {
+    const controller = await createController();
+
+    const response = controller.themeExposures();
+
+    expect(response.success).toBe(true);
+    expect(response.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({ theme: '海外科技', source: 'fund', amount: 33910, weightPercent: 23.93, actionBias: 'hold' }),
+      expect.objectContaining({ theme: '通信设备 / CPO', source: 'fund', amount: 21137, weightPercent: 14.91, actionBias: 'watch' }),
+      expect.objectContaining({ theme: 'AI / 人工智能', source: 'fund', amount: 13301, weightPercent: 9.38, actionBias: 'watch' }),
+      expect.objectContaining({ theme: '机器人 / 物理 AI', source: 'stock', actionBias: 'watch' }),
+    ]));
+    expect(response.data[0]).toHaveProperty('riskNote');
+    expect(response.data[0]).toHaveProperty('nextStep');
+  });
+
   it('returns portfolio review, ideas, theses and catalysts fallback responses', async () => {
     const controller = await createController();
 

@@ -6,6 +6,7 @@ import type {
   ResearchPlaybookDto,
   ResearchPortfolioContextDto,
   ResearchPortfolioReviewDto,
+  ResearchThemeExposureSummaryDto,
   ResearchThesisDto,
 } from '../presentation/dto/research.dto';
 
@@ -25,6 +26,10 @@ export class ResearchService {
 
   getPortfolioContext(): ResearchPortfolioContextDto {
     return PORTFOLIO_CONTEXT;
+  }
+
+  listThemeExposures(): readonly ResearchThemeExposureSummaryDto[] {
+    return THEME_EXPOSURES;
   }
 
   listIdeas(): readonly ResearchIdeaDto[] {
@@ -218,6 +223,63 @@ const PORTFOLIO_CONTEXT: ResearchPortfolioContextDto = {
     ],
   },
 };
+
+const THEME_EXPOSURES: readonly ResearchThemeExposureSummaryDto[] = [
+  {
+    theme: '海外科技',
+    source: 'fund',
+    amount: 33910,
+    weightPercent: 23.93,
+    actionBias: 'hold',
+    riskNote: '纳指100为最大单一基金暴露，和 A 股大科技方向存在风格同向。',
+    nextStep: '若海外科技继续强势可持有；若高位波动放大，优先观察而非追加。',
+  },
+  {
+    theme: '通信设备 / CPO',
+    source: 'fund',
+    amount: 21137,
+    weightPercent: 14.91,
+    actionBias: 'watch',
+    riskNote: '通信设备暴露较高，和 AI 算力链条相关度强。',
+    nextStep: '等待主题强度确认；冲高时关注止盈节奏，回踩不破再考虑分批。',
+  },
+  {
+    theme: 'AI / 人工智能',
+    source: 'fund',
+    amount: 13301,
+    weightPercent: 9.38,
+    actionBias: 'watch',
+    riskNote: '与数字经济、大科技、通信设备存在交叉暴露。',
+    nextStep: '优先结合 AI ETF 和机器人观察池，避免同主题重复追高。',
+  },
+  {
+    theme: '机器人 / 物理 AI',
+    source: 'stock',
+    amount: null,
+    weightPercent: null,
+    actionBias: 'watch',
+    riskNote: '股票侧 600366、601689、002031 均与机器人/物理 AI 相关，弹性和波动同步放大。',
+    nextStep: '后续接入实时价格后计算股票侧实际权重，再决定继续持有、分批或风控。',
+  },
+  {
+    theme: '黄金 / 避险',
+    source: 'fund',
+    amount: 16017,
+    weightPercent: 11.3,
+    actionBias: 'hold',
+    riskNote: '黄金可平衡科技成长高波动，但不应替代权益仓位判断。',
+    nextStep: '作为组合稳定器持有，若风险偏好显著回升再评估止盈。',
+  },
+  {
+    theme: '绿电 / 新能源',
+    source: 'fund',
+    amount: 8960,
+    weightPercent: 6.32,
+    actionBias: 'risk_control',
+    riskNote: '当前暴露不高但趋势和催化优先级偏低。',
+    nextStep: '暂不加仓，等待趋势修复或明确政策/产业催化。',
+  },
+];
 
 const IDEAS: readonly ResearchIdeaDto[] = [
   {

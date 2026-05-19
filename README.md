@@ -250,6 +250,7 @@ Phase 9 Step 2 已加入 `ResearchModule` 第一版只读 API，用 fallback 数
 - `GET /research/daily-note`：盘前/盘中/收盘复盘结构化输出
 - `GET /research/portfolio-review`：组合体检 fallback 输出
 - `GET /research/portfolio-context`：Ricki 股票持仓、基金暴露、观察主题、风险旗标和动作规则
+- `GET /research/theme-exposures`：股票 + 基金主题暴露矩阵，给出风险提示和下一步动作
 - `GET /research/ideas`：选股想法 fallback 输出
 - `GET /research/theses`：持仓 thesis fallback 输出
 - `GET /research/catalysts`：催化剂日历 fallback 输出

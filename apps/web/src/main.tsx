@@ -211,11 +211,22 @@ type ResearchPortfolioContext = {
   };
 };
 
+type ResearchThemeExposureSummary = {
+  readonly theme: string;
+  readonly source: string;
+  readonly amount: number | null;
+  readonly weightPercent: number | null;
+  readonly actionBias: string;
+  readonly riskNote: string;
+  readonly nextStep: string;
+};
+
 type ResearchData = {
   readonly playbooks: readonly ResearchPlaybook[];
   readonly dailyNote: ResearchDailyNote;
   readonly portfolioReview: ResearchPortfolioReview;
   readonly portfolioContext: ResearchPortfolioContext;
+  readonly themeExposures: readonly ResearchThemeExposureSummary[];
   readonly ideas: readonly ResearchIdea[];
   readonly theses: readonly ResearchThesis[];
   readonly catalysts: readonly ResearchCatalyst[];
@@ -369,6 +380,14 @@ const fallbackResearchData: ResearchData = {
       rules: ['无真实信号确认前默认观察。', '分批加仓必须有触发条件、反证条件和风控条件。'],
     },
   },
+  themeExposures: [
+    { theme: '海外科技', source: 'fund', amount: 33910, weightPercent: 23.93, actionBias: 'hold', riskNote: '纳指100为最大单一基金暴露。', nextStep: '高位波动放大时观察而非追加。' },
+    { theme: '通信设备 / CPO', source: 'fund', amount: 21137, weightPercent: 14.91, actionBias: 'watch', riskNote: '和 AI 算力链条相关度强。', nextStep: '回踩不破再考虑分批。' },
+    { theme: 'AI / 人工智能', source: 'fund', amount: 13301, weightPercent: 9.38, actionBias: 'watch', riskNote: '与大科技和通信设备交叉暴露。', nextStep: '避免同主题重复追高。' },
+    { theme: '机器人 / 物理 AI', source: 'stock', amount: null, weightPercent: null, actionBias: 'watch', riskNote: '股票侧机器人相关弹性和波动同步放大。', nextStep: '接入实时价格后计算实际权重。' },
+    { theme: '黄金 / 避险', source: 'fund', amount: 16017, weightPercent: 11.3, actionBias: 'hold', riskNote: '平衡科技成长高波动。', nextStep: '风险偏好显著回升再评估止盈。' },
+    { theme: '绿电 / 新能源', source: 'fund', amount: 8960, weightPercent: 6.32, actionBias: 'risk_control', riskNote: '趋势和催化优先级偏低。', nextStep: '暂不加仓，等待趋势修复。' },
+  ],
   ideas: [
     {
       symbol: 'WATCHLIST-AI-ROBOTICS',
@@ -440,16 +459,17 @@ async function loadDashboard(): Promise<DashboardData> {
 }
 
 async function loadResearch(): Promise<ResearchData> {
-  const [playbooks, dailyNote, portfolioReview, portfolioContext, ideas, theses, catalysts] = await Promise.all([
+  const [playbooks, dailyNote, portfolioReview, portfolioContext, themeExposures, ideas, theses, catalysts] = await Promise.all([
     fetchApi<readonly ResearchPlaybook[]>('/research/playbooks'),
     fetchApi<ResearchDailyNote>('/research/daily-note'),
     fetchApi<ResearchPortfolioReview>('/research/portfolio-review'),
     fetchApi<ResearchPortfolioContext>('/research/portfolio-context'),
+    fetchApi<readonly ResearchThemeExposureSummary[]>('/research/theme-exposures'),
     fetchApi<readonly ResearchIdea[]>('/research/ideas'),
     fetchApi<readonly ResearchThesis[]>('/research/theses'),
     fetchApi<readonly ResearchCatalyst[]>('/research/catalysts'),
   ]);
-  return { playbooks, dailyNote, portfolioReview, portfolioContext, ideas, theses, catalysts };
+  return { playbooks, dailyNote, portfolioReview, portfolioContext, themeExposures, ideas, theses, catalysts };
 }
 
 function useDashboardData(): { readonly data: DashboardData; readonly isLive: boolean; readonly refreshedAt: string } {
@@ -860,6 +880,23 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
         <CardHeader icon={<ShieldCheck />} title="Portfolio Risk Flags" subtitle="后续所有建议都必须先通过这些组合约束" />
         <div className="risk-flag-grid">
           {context.riskFlags.map((flag) => <div className="risk-flag" key={flag}><span className="pulse warning" />{flag}</div>)}
+        </div>
+      </article>
+
+      <article className="glass-card theme-exposure-panel">
+        <CardHeader icon={<Waves />} title="Theme Exposure Matrix" subtitle="把股票和基金暴露合并成可操作的主题视图" />
+        <div className="theme-exposure-grid">
+          {props.data.themeExposures.map((exposure) => (
+            <div className="theme-exposure-card" key={`${exposure.theme}-${exposure.source}`}>
+              <div className="strategy-topline"><span className="strategy-code">{exposure.theme}</span><span className="version-pill">{exposure.actionBias}</span></div>
+              <div className="theme-exposure-meta">
+                <span>{exposure.source}</span>
+                <strong>{exposure.weightPercent === null ? '待接实时权重' : `${exposure.weightPercent.toFixed(2)}%`}</strong>
+              </div>
+              <p>{exposure.riskNote}</p>
+              <small>{exposure.nextStep}</small>
+            </div>
+          ))}
         </div>
       </article>
 

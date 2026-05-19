@@ -235,6 +235,7 @@ GET /research/playbooks
 GET /research/daily-note
 GET /research/portfolio-review
 GET /research/portfolio-context
+GET /research/theme-exposures
 GET /research/ideas
 GET /research/theses
 GET /research/catalysts
