@@ -98,6 +98,33 @@ enum BacktestOrderStatus {
   CANCELED
 }
 
+enum PortfolioAccountType {
+  STOCK
+  FUND
+  MIXED
+}
+
+enum PortfolioRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum PortfolioActionBias {
+  HOLD
+  ADD
+  BUILD
+  WATCH
+  TAKE_PROFIT
+  RISK_CONTROL
+}
+
+enum PortfolioExposureSource {
+  STOCK
+  FUND
+  MIXED
+}
+
 model Security {
   id            String        @id @default(uuid()) @db.Uuid
   tsCode        String        @unique @map("ts_code") @db.VarChar(16)
@@ -301,6 +328,113 @@ model DataSyncLog {
   @@index([taskName, dataType, status])
   @@index([createdAt])
   @@map("data_sync_logs")
+}
+
+model PortfolioAccount {
+  id                String               @id @default(uuid()) @db.Uuid
+  owner             String               @db.VarChar(64)
+  name              String               @db.VarChar(128)
+  accountType       PortfolioAccountType @default(MIXED) @map("account_type")
+  totalAssetValue   Decimal?             @map("total_asset_value") @db.Decimal(24, 6)
+  visibleAssetValue Decimal?             @map("visible_asset_value") @db.Decimal(24, 6)
+  cashAmount        Decimal?             @map("cash_amount") @db.Decimal(24, 6)
+  positionLevel     String?              @map("position_level") @db.VarChar(64)
+  isPrimary         Boolean              @default(false) @map("is_primary")
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  stockHoldings  PortfolioHolding[]
+  fundHoldings   FundHolding[]
+  themeExposures ThemeExposure[]
+  watchlistItems WatchlistItem[]
+
+  @@index([owner, isPrimary])
+  @@map("portfolio_accounts")
+}
+
+model PortfolioHolding {
+  id            String              @id @default(uuid()) @db.Uuid
+  accountId     String              @map("account_id") @db.Uuid
+  symbol        String              @db.VarChar(12)
+  name          String              @db.VarChar(64)
+  quantity      Int
+  costPrice     Decimal             @map("cost_price") @db.Decimal(18, 6)
+  latestPrice   Decimal?            @map("latest_price") @db.Decimal(18, 6)
+  marketValue   Decimal?            @map("market_value") @db.Decimal(24, 6)
+  unrealizedPnl Decimal?            @map("unrealized_pnl") @db.Decimal(24, 6)
+  themeTags     String[]            @default([]) @map("theme_tags")
+  riskLevel     PortfolioRiskLevel  @default(MEDIUM) @map("risk_level")
+  actionBias    PortfolioActionBias @default(WATCH) @map("action_bias")
+  thesis        String              @db.Text
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  account PortfolioAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, symbol])
+  @@index([symbol])
+  @@index([accountId, actionBias])
+  @@map("portfolio_holdings")
+}
+
+model FundHolding {
+  id            String              @id @default(uuid()) @db.Uuid
+  accountId     String              @map("account_id") @db.Uuid
+  fundCode      String?             @map("fund_code") @db.VarChar(32)
+  name          String              @db.VarChar(128)
+  theme         String              @db.VarChar(128)
+  amount        Decimal             @db.Decimal(24, 6)
+  weightPercent Decimal             @map("weight_percent") @db.Decimal(10, 4)
+  riskLevel     PortfolioRiskLevel  @default(MEDIUM) @map("risk_level")
+  actionBias    PortfolioActionBias @default(WATCH) @map("action_bias")
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  account PortfolioAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, name, theme])
+  @@index([theme])
+  @@index([accountId, actionBias])
+  @@map("fund_holdings")
+}
+
+model ThemeExposure {
+  id            String                  @id @default(uuid()) @db.Uuid
+  accountId     String                  @map("account_id") @db.Uuid
+  theme         String                  @db.VarChar(128)
+  source        PortfolioExposureSource
+  amount        Decimal?                @db.Decimal(24, 6)
+  weightPercent Decimal?                @map("weight_percent") @db.Decimal(10, 4)
+  actionBias    PortfolioActionBias     @default(WATCH) @map("action_bias")
+  riskNote      String                  @map("risk_note") @db.Text
+  nextStep      String                  @map("next_step") @db.Text
+  createdAt     DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  account PortfolioAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, theme, source])
+  @@index([theme])
+  @@index([accountId, actionBias])
+  @@map("theme_exposures")
+}
+
+model WatchlistItem {
+  id         String              @id @default(uuid()) @db.Uuid
+  accountId  String              @map("account_id") @db.Uuid
+  symbol     String?             @db.VarChar(12)
+  name       String              @db.VarChar(128)
+  theme      String              @db.VarChar(128)
+  reason     String              @db.Text
+  actionBias PortfolioActionBias @default(WATCH) @map("action_bias")
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  account PortfolioAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, actionBias])
+  @@index([symbol])
+  @@map("watchlist_items")
 }
 
 model MinuteBar {

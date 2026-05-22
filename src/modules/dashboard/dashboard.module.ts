@@ -9,5 +9,6 @@ import { DashboardController } from './presentation/dashboard.controller';
   imports: [DataModule, BacktestModule, StrategyModule],
   controllers: [DashboardController],
   providers: [DashboardService],
+  exports: [DashboardService],
 })
 export class DashboardModule {}

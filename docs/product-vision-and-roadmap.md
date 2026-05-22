@@ -264,9 +264,11 @@ Research Center
 
 **目标：** 让系统知道 Ricki 的真实持仓和基金暴露，所有建议围绕持仓展开。
 
+**当前状态：** Phase 10 Step 1 已实现基础数据库模型、`PortfolioModule`、`GET /portfolio/context` 和 Research Center 优先读取 Portfolio Context 的集成。第一版只做只读上下文和暴露分析，不做交易、不做自动调仓。
+
 ### 10.1 持仓模型
 
-建议模型：
+已加入基础模型：
 
 ```text
 PortfolioAccount
@@ -290,7 +292,7 @@ WatchlistItem
 
 ### 10.2 持仓暴露分析
 
-输出：
+当前 `GET /portfolio/context` 输出：
 
 - 股票 / 基金 / ETF / 黄金 / 现金占比
 - AI / 机器人 / 通信设备 / 大科技 / 绿电 / 小盘 / 海外科技暴露

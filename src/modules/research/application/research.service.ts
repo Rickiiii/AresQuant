@@ -1,4 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { DashboardService } from '@/modules/dashboard/application/dashboard.service';
+import { PortfolioContextService } from '@/modules/portfolio/application/portfolio-context.service';
+import type { PortfolioContextDto, PortfolioThemeExposureSummaryDto } from '@/modules/portfolio/presentation/dto/portfolio-context.dto';
+import type { DashboardBacktestListItemDto } from '@/modules/dashboard/presentation/dto/dashboard-backtest.dto';
+import type { DashboardDataCenterSummaryDto } from '@/modules/dashboard/presentation/dto/dashboard-data-center.dto';
+import type { DashboardOverviewDto } from '@/modules/dashboard/presentation/dto/dashboard-overview.dto';
+import type { DashboardStrategySignalSampleDto } from '@/modules/dashboard/presentation/dto/dashboard-strategy.dto';
 import type {
   ResearchCatalystDto,
   ResearchDailyNoteDto,
@@ -12,28 +19,53 @@ import type {
 
 @Injectable()
 export class ResearchService {
+  constructor(
+    @Optional() private readonly dashboardService?: DashboardService,
+    @Optional() private readonly portfolioContextService?: PortfolioContextService,
+  ) {}
+
   listPlaybooks(): readonly ResearchPlaybookDto[] {
     return RESEARCH_PLAYBOOKS;
   }
 
-  getDailyNote(): ResearchDailyNoteDto {
-    return DAILY_NOTE;
+  async getDailyNote(): Promise<ResearchDailyNoteDto> {
+    const liveContext = await this.loadLiveContext();
+    if (liveContext === null) {
+      return DAILY_NOTE;
+    }
+    return buildLiveDailyNote(liveContext);
   }
 
-  getPortfolioReview(): ResearchPortfolioReviewDto {
-    return PORTFOLIO_REVIEW;
+  async getPortfolioReview(): Promise<ResearchPortfolioReviewDto> {
+    const liveContext = await this.loadLiveContext();
+    if (liveContext === null) {
+      return PORTFOLIO_REVIEW;
+    }
+    return buildLivePortfolioReview(liveContext);
   }
 
-  getPortfolioContext(): ResearchPortfolioContextDto {
-    return PORTFOLIO_CONTEXT;
+  async getPortfolioContext(): Promise<ResearchPortfolioContextDto> {
+    const context = await this.loadPortfolioContext();
+    if (context === null) {
+      return PORTFOLIO_CONTEXT;
+    }
+    return toResearchPortfolioContext(context);
   }
 
-  listThemeExposures(): readonly ResearchThemeExposureSummaryDto[] {
-    return THEME_EXPOSURES;
+  async listThemeExposures(): Promise<readonly ResearchThemeExposureSummaryDto[]> {
+    const context = await this.loadPortfolioContext();
+    if (context === null) {
+      return THEME_EXPOSURES;
+    }
+    return context.themeExposures.map(toResearchThemeExposure);
   }
 
-  listIdeas(): readonly ResearchIdeaDto[] {
-    return IDEAS;
+  async listIdeas(): Promise<readonly ResearchIdeaDto[]> {
+    const liveContext = await this.loadLiveContext();
+    if (liveContext === null) {
+      return IDEAS;
+    }
+    return buildLiveIdeas(liveContext);
   }
 
   listTheses(): readonly ResearchThesisDto[] {
@@ -43,6 +75,246 @@ export class ResearchService {
   listCatalysts(): readonly ResearchCatalystDto[] {
     return CATALYSTS;
   }
+
+  private async loadLiveContext(): Promise<ResearchLiveContext | null> {
+    if (this.dashboardService === undefined) {
+      return null;
+    }
+
+    try {
+      const [overview, dataCenter, backtests, sampleSignals, stocks] = await Promise.all([
+        this.dashboardService.getOverview(),
+        this.dashboardService.getDataCenterSummary(),
+        this.dashboardService.listBacktests(),
+        this.dashboardService.getStrategySampleSignals('multi-factor'),
+        this.dashboardService.listStocks(),
+      ]);
+      return {
+        overview,
+        dataCenter,
+        backtests,
+        sampleSignals: sampleSignals ?? [],
+        stocksBySymbol: new Map(stocks.map((stock) => [stock.symbol, stock])),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private async loadPortfolioContext(): Promise<PortfolioContextDto | null> {
+    if (this.portfolioContextService === undefined) {
+      return null;
+    }
+
+    try {
+      return await this.portfolioContextService.getContext('Ricki');
+    } catch {
+      return null;
+    }
+  }
+}
+
+interface ResearchLiveContext {
+  readonly overview: DashboardOverviewDto;
+  readonly dataCenter: DashboardDataCenterSummaryDto;
+  readonly backtests: readonly DashboardBacktestListItemDto[];
+  readonly sampleSignals: readonly DashboardStrategySignalSampleDto[];
+  readonly stocksBySymbol: ReadonlyMap<string, { readonly symbol: string; readonly name: string; readonly industry?: string; readonly market?: string }>;
+}
+
+function buildLiveDailyNote(context: ResearchLiveContext): ResearchDailyNoteDto {
+  const latestDate = context.overview.dataCenter.latestDailyBarDate ?? 'unknown';
+  const successCount = context.overview.backtests.byStatus.SUCCESS ?? 0;
+  const totalBacktests = Math.max(context.overview.backtests.total, 1);
+  const successText = `${successCount}/${totalBacktests}`;
+  const strategyCodes = context.overview.strategies.codes.join(' / ');
+
+  return {
+    ...DAILY_NOTE,
+    title: `AresQuant 真实数据投研快照 ${latestDate}`,
+    marketState: 'live',
+    topConclusion: `当前数据中心覆盖 ${context.overview.dataCenter.stockCount} 只股票、${context.overview.dataCenter.dailyBarCount} 条日线和 ${context.overview.dataCenter.financialFactorCount} 条财务因子；策略池包含 ${strategyCodes}，回测成功 ${successText}，建议以真实信号确认后的观察和分批动作为主。`,
+    sections: [
+      {
+        code: 'market-temperature',
+        title: '市场温度',
+        bullets: [
+          `股票池 ${context.overview.dataCenter.stockCount} 只，日线 ${context.overview.dataCenter.dailyBarCount} 条，最新日线 ${latestDate}。`,
+          `财务因子 ${context.overview.dataCenter.financialFactorCount} 条，最新财务数据 ${context.overview.dataCenter.latestFinancialFactorDate ?? '待同步'}。`,
+        ],
+      },
+      {
+        code: 'theme-strength',
+        title: '主题强弱',
+        bullets: [
+          '主题暴露仍以当前持仓和基金上下文为基础，后续用行业/主题行情替换静态标签。',
+          `数据集覆盖：stocks ${context.dataCenter.stocks?.total ?? 0}，dailyBars ${context.dataCenter.dailyBars?.total ?? 0}，financialFactors ${context.dataCenter.financialFactors?.total ?? 0}。`,
+        ],
+      },
+      {
+        code: 'portfolio-check',
+        title: '持仓检查',
+        bullets: [
+          `组合上下文已加载 Ricki 股票和基金暴露；最新回测任务：${context.overview.backtests.latestTask?.name ?? '暂无'}。`,
+          'Portfolio Context 已支持最新价、市值和浮盈亏；缺失价格时股票侧仍以成本口径估算。',
+        ],
+      },
+      {
+        code: 'factor-signals',
+        title: '策略/因子信号',
+        bullets: [
+          `正式策略 ${context.overview.strategies.total} 个：${strategyCodes}。`,
+          `multi-factor sample signals ${context.sampleSignals.length} 条，回测成功 ${successText}。`,
+        ],
+      },
+      {
+        code: 'action-plan',
+        title: '操作建议',
+        bullets: [
+          '有真实数据覆盖时，优先把建议落到观察池、分批建仓、风控和止盈四类动作。',
+          '样例信号只用于投研候选，不作为自动交易或实盘指令。',
+        ],
+      },
+      {
+        code: 'disconfirming-evidence',
+        title: '反证条件',
+        bullets: [
+          '数据同步明显滞后、回测失败率升高或 sample signal 缺失时降低建议置信度。',
+          ...DAILY_NOTE.disconfirmingEvidence.slice(0, 2),
+        ],
+      },
+    ],
+    actionBuckets: {
+      ...DAILY_NOTE.actionBuckets,
+      watch: context.sampleSignals.length > 0
+        ? context.sampleSignals.map((signal) => `${signal.securityId} ${stockName(context, signal.securityId)} · ${(signal.targetWeight * 100).toFixed(2)}%`)
+        : DAILY_NOTE.actionBuckets.watch,
+      riskControl: [
+        `若数据最新日期不是 ${latestDate} 或回测失败任务增加，先暂停提高仓位。`,
+        ...DAILY_NOTE.actionBuckets.riskControl,
+      ],
+    },
+    nextFocus: [
+      '把 Research ideas 接入 multi-factor sample signals',
+      '用最新回测结果校准建议置信度',
+      '把 Portfolio Context 的持仓数据接入真实价格同步',
+    ],
+  };
+}
+
+function buildLivePortfolioReview(context: ResearchLiveContext): ResearchPortfolioReviewDto {
+  const latestDate = context.overview.dataCenter.latestDailyBarDate ?? '待同步';
+  const strategyCodes = context.overview.strategies.codes.join(' / ');
+  const successCount = context.overview.backtests.byStatus.SUCCESS ?? 0;
+  const failedCount = context.overview.backtests.byStatus.FAILED ?? 0;
+
+  return {
+    positioning: {
+      stockExposure: `数据中心当前覆盖 ${context.overview.dataCenter.stockCount} 只股票，Ricki 股票持仓仍按成本口径跟踪。`,
+      fundExposure: `策略池 ${strategyCodes} 已可为基金/主题暴露提供投研参照。`,
+      cashLevel: PORTFOLIO_REVIEW.positioning.cashLevel,
+      overallRisk: failedCount > successCount ? 'high' : 'medium',
+    },
+    themeExposures: PORTFOLIO_REVIEW.themeExposures.map((item) => ({
+      ...item,
+      suggestion: `${item.suggestion} 最新日线 ${latestDate}，需与当前主题强弱共同确认。`,
+    })),
+    priorities: [
+      `先确认数据最新日期 ${latestDate} 与持仓观察周期一致。`,
+      `优先跟踪 multi-factor 输出的 ${context.sampleSignals.length} 个候选标的。`,
+      `回测成功 ${successCount} 个、失败 ${failedCount} 个；失败升高时降低动作置信度。`,
+    ],
+    riskNotes: [
+      '真实行情数据已进入投研摘要；持仓市值和盈亏会优先读取 Portfolio Context，缺失时回退成本口径。',
+      ...PORTFOLIO_REVIEW.riskNotes,
+    ],
+  };
+}
+
+function buildLiveIdeas(context: ResearchLiveContext): readonly ResearchIdeaDto[] {
+  if (context.sampleSignals.length === 0) {
+    return IDEAS;
+  }
+
+  const latestDate = context.overview.dataCenter.latestDailyBarDate ?? '待同步';
+  return context.sampleSignals.slice(0, 6).map((signal) => {
+    const stock = context.stocksBySymbol.get(signal.securityId);
+    const name = stock?.name ?? signal.securityId;
+    const industry = stock?.industry ?? stock?.market ?? 'A 股';
+    const targetWeight = (signal.targetWeight * 100).toFixed(2);
+
+    return {
+      symbol: signal.securityId,
+      name,
+      suggestedAction: 'watch',
+      oneLineThesis: `${name} 进入 multi-factor 样例信号，目标权重 ${targetWeight}%，先作为投研观察而不是交易指令。`,
+      factorBreakdown: [
+        { factor: 'Strategy Signal', signal: `${targetWeight}%`, explanation: signal.reason },
+        { factor: 'Data Coverage', signal: latestDate, explanation: `日线与财务因子覆盖支持 ${industry} 标的进入候选池。` },
+        { factor: 'Backtest Health', signal: `${context.overview.backtests.byStatus.SUCCESS ?? 0}/${Math.max(context.overview.backtests.total, 1)}`, explanation: '用回测成功率作为建议置信度的基础约束。' },
+      ],
+      risks: [
+        'sample signal 只代表策略样例，不等于完整实盘建议。',
+        '未接入真实持仓市值前，需避免同主题重复暴露。',
+      ],
+      triggers: [
+        `数据最新日期保持在 ${latestDate} 且无明显同步缺口。`,
+        '主题强度、估值和回测表现共同支持时再进入分批动作。',
+      ],
+    };
+  });
+}
+
+function stockName(context: ResearchLiveContext, symbol: string): string {
+  return context.stocksBySymbol.get(symbol)?.name ?? symbol;
+}
+
+function toResearchPortfolioContext(context: PortfolioContextDto): ResearchPortfolioContextDto {
+  return {
+    owner: context.owner,
+    accountScope: context.accountScope,
+    stockAccount: {
+      positionLevel: context.stockAccount.positionLevel,
+      positions: context.stockAccount.positions.map((position) => ({
+        symbol: position.symbol,
+        name: position.name,
+        quantity: position.quantity,
+        costPrice: position.costPrice,
+        latestPrice: position.latestPrice,
+        marketValue: position.marketValue,
+        unrealizedPnl: position.unrealizedPnl,
+        theme: position.theme,
+        thesis: position.thesis,
+        actionBias: position.actionBias,
+      })),
+    },
+    fundAccount: {
+      totalAssetValue: context.fundAccount.totalAssetValue,
+      visibleAssetValue: context.fundAccount.visibleAssetValue,
+      exposures: context.fundAccount.exposures.map((exposure) => ({
+        name: exposure.name,
+        theme: exposure.theme,
+        amount: exposure.amount,
+        weightPercent: exposure.weightPercent,
+        actionBias: exposure.actionBias,
+      })),
+    },
+    watchThemes: context.watchThemes,
+    riskFlags: context.riskFlags,
+    actionPolicy: context.actionPolicy,
+  };
+}
+
+function toResearchThemeExposure(exposure: PortfolioThemeExposureSummaryDto): ResearchThemeExposureSummaryDto {
+  return {
+    theme: exposure.theme,
+    source: exposure.source,
+    amount: exposure.amount,
+    weightPercent: exposure.weightPercent,
+    actionBias: exposure.actionBias,
+    riskNote: exposure.riskNote,
+    nextStep: exposure.nextStep,
+  };
 }
 
 const RESEARCH_PLAYBOOKS: readonly ResearchPlaybookDto[] = [

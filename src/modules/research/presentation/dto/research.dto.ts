@@ -25,7 +25,7 @@ export class ResearchActionBucketsDto {
 
 export class ResearchDailyNoteDto {
   readonly title!: string;
-  readonly marketState!: 'fallback';
+  readonly marketState!: 'fallback' | 'live';
   readonly topConclusion!: string;
   readonly sections!: readonly ResearchNoteSectionDto[];
   readonly actionBuckets!: ResearchActionBucketsDto;
@@ -58,6 +58,9 @@ export class ResearchStockPositionDto {
   readonly name!: string;
   readonly quantity!: number;
   readonly costPrice!: number;
+  readonly latestPrice?: number | null;
+  readonly marketValue?: number | null;
+  readonly unrealizedPnl?: number | null;
   readonly theme!: string;
   readonly thesis!: string;
   readonly actionBias!: ResearchAction;

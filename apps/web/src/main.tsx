@@ -111,7 +111,7 @@ type ResearchPlaybook = {
 
 type ResearchDailyNote = {
   readonly title: string;
-  readonly marketState: 'fallback';
+  readonly marketState: 'fallback' | 'live';
   readonly topConclusion: string;
   readonly sections: readonly {
     readonly code: string;
@@ -186,6 +186,9 @@ type ResearchPortfolioContext = {
       readonly name: string;
       readonly quantity: number;
       readonly costPrice: number;
+      readonly latestPrice?: number | null;
+      readonly marketValue?: number | null;
+      readonly unrealizedPnl?: number | null;
       readonly theme: string;
       readonly thesis: string;
       readonly actionBias: string;
@@ -790,8 +793,12 @@ function BacktestsView(props: { readonly backtests: readonly BacktestItem[]; rea
 function ResearchView(props: { readonly data: ResearchData; readonly isLive: boolean }): React.ReactElement {
   const daily = props.data.dailyNote;
   const context = props.data.portfolioContext;
-  const stockMarketValue = context.stockAccount.positions.reduce((sum, item) => sum + item.quantity * item.costPrice, 0);
+  const stockMarketValue = context.stockAccount.positions.reduce((sum, item) => sum + (item.marketValue ?? item.quantity * (item.latestPrice ?? item.costPrice)), 0);
+  const fundVisibleValue = context.fundAccount.visibleAssetValue;
+  const estimatedPortfolioValue = stockMarketValue + fundVisibleValue;
   const topFundExposures = context.fundAccount.exposures.slice(0, 6);
+  const primaryIdeas = props.data.ideas.slice(0, 4);
+  const riskCount = context.riskFlags.length + props.data.portfolioReview.riskNotes.length;
   const actionBuckets = [
     ['分批加仓', daily.actionBuckets.build],
     ['观察', daily.actionBuckets.watch],
@@ -803,14 +810,26 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
     <div className="view-stack research-view">
       <section className="hero-card research-hero">
         <div>
-          <div className="eyebrow"><Sparkles size={14} /> {props.isLive ? 'Research API live' : 'Research fallback preview'}</div>
-          <h2>把行情、持仓和策略信号翻译成可执行的 A 股投研动作</h2>
+          <div className="eyebrow"><Sparkles size={14} /> {daily.marketState === 'live' && props.isLive ? 'Research API live' : 'Research fallback preview'}</div>
+          <h2>今日决策板</h2>
           <p>{daily.topConclusion}</p>
         </div>
-        <div className="hero-orb"><BrainCircuit size={52} /></div>
+        <div className="research-brief-panel">
+          <span>Signal posture</span>
+          <strong>{context.actionPolicy.defaultBias}</strong>
+          <small>{daily.nextFocus[0] ?? '等待下一步投研信号'}</small>
+        </div>
       </section>
 
-      <section className="research-grid">
+      <section className="research-kpi-strip">
+        <div><span>估算组合口径</span><strong>¥{formatNumber(Math.round(estimatedPortfolioValue))}</strong><small>股票成本 + 可见基金</small></div>
+        <div><span>股票持仓</span><strong>{context.stockAccount.positions.length}</strong><small>{context.stockAccount.positionLevel}</small></div>
+        <div><span>主题暴露</span><strong>{props.data.themeExposures.length}</strong><small>股票 + 基金矩阵</small></div>
+        <div><span>观察信号</span><strong>{primaryIdeas.length}</strong><small>{daily.marketState === 'live' ? '来自策略样例' : 'fallback 候选'}</small></div>
+        <div><span>风险约束</span><strong>{riskCount}</strong><small>动作前检查</small></div>
+      </section>
+
+      <section className="research-command-grid">
         <article className="glass-card research-note-card">
           <CardHeader icon={<Radar />} title={daily.title} subtitle="14:30 盘中复盘 / 盘前计划 / 收盘验证" />
           <div className="research-section-list">
@@ -837,6 +856,22 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
             {context.actionPolicy.rules.map((rule) => <span key={rule}>{rule}</span>)}
           </div>
         </article>
+
+        <article className="glass-card idea-board">
+          <CardHeader icon={<Zap />} title="Idea Engine" subtitle="策略信号转成投研观察卡" />
+          <div className="idea-stack">
+            {primaryIdeas.map((idea) => (
+              <div className="idea-card compact" key={idea.symbol}>
+                <div className="strategy-topline"><span className="strategy-code">{idea.symbol}</span><span className="version-pill">{idea.suggestedAction}</span></div>
+                <h3>{idea.name}</h3>
+                <p>{idea.oneLineThesis}</p>
+                <div className="factor-mini-list">
+                  {idea.factorBreakdown.slice(0, 3).map((factor) => <span key={factor.factor}>{factor.factor}: {factor.signal}</span>)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
       </section>
 
       <section className="research-grid portfolio-context-grid">
@@ -852,7 +887,8 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
               <div className="position-card" key={position.symbol}>
                 <div className="strategy-topline"><span className="strategy-code">{position.symbol}</span><span className="version-pill">{position.actionBias}</span></div>
                 <strong>{position.name}</strong>
-                <span>{position.quantity} 股 @ ¥{position.costPrice.toFixed(2)} · {position.theme}</span>
+                <span>{position.quantity} 股 @ ¥{position.costPrice.toFixed(2)}{position.latestPrice === undefined || position.latestPrice === null ? '' : ` / 最新 ¥${position.latestPrice.toFixed(2)}`} · {position.theme}</span>
+                {position.marketValue !== undefined && position.marketValue !== null && <span>市值 ¥{formatNumber(Math.round(position.marketValue))}{position.unrealizedPnl === undefined || position.unrealizedPnl === null ? '' : ` · 浮盈亏 ¥${formatNumber(Math.round(position.unrealizedPnl))}`}</span>}
                 <p>{position.thesis}</p>
               </div>
             ))}
@@ -860,7 +896,7 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
         </article>
 
         <article className="glass-card">
-          <CardHeader icon={<Layers3 />} title="基金/主题暴露" subtitle={`可见基金 ${formatNumber(context.fundAccount.visibleAssetValue)} / 账户约 ${formatNumber(context.fundAccount.totalAssetValue)}`} />
+          <CardHeader icon={<Layers3 />} title="基金/主题暴露" subtitle={`可见基金 ${formatNumber(fundVisibleValue)} / 账户约 ${formatNumber(context.fundAccount.totalAssetValue)}`} />
           <div className="fund-exposure-list">
             {topFundExposures.map((exposure) => (
               <div className="fund-exposure-row" key={`${exposure.name}-${exposure.theme}`}>
@@ -915,15 +951,12 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
         </article>
 
         <article className="glass-card">
-          <CardHeader icon={<Zap />} title="Idea Engine" subtitle="可解释观察标的" />
-          {props.data.ideas.map((idea) => (
-            <div className="idea-card" key={idea.symbol}>
-              <div className="strategy-topline"><span className="strategy-code">{idea.symbol}</span><span className="version-pill">{idea.suggestedAction}</span></div>
-              <h3>{idea.name}</h3>
-              <p>{idea.oneLineThesis}</p>
-              <div className="factor-mini-list">
-                {idea.factorBreakdown.map((factor) => <span key={factor.factor}>{factor.factor}: {factor.signal}</span>)}
-              </div>
+          <CardHeader icon={<BrainCircuit />} title="Signal Evidence" subtitle="候选理由、风险与触发条件" />
+          {primaryIdeas.map((idea) => (
+            <div className="evidence-card" key={`${idea.symbol}-evidence`}>
+              <strong>{idea.name}</strong>
+              <span>{idea.risks[0]}</span>
+              <p>{idea.triggers[0]}</p>
             </div>
           ))}
         </article>

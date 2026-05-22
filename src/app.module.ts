@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { BacktestModule } from './modules/backtest/backtest.module';
 import { DataModule } from './modules/data/data.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { PortfolioModule } from './modules/portfolio/portfolio.module';
 import { ResearchModule } from './modules/research/research.module';
 import { StrategyModule } from './modules/strategy/strategy.module';
 import { appConfig } from './config/app.config';
@@ -21,6 +22,7 @@ import { DatabaseModule } from './database/database.module';
     BacktestModule,
     StrategyModule,
     DashboardModule,
+    PortfolioModule,
     ResearchModule,
   ],
 })

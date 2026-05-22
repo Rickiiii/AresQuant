@@ -28,36 +28,36 @@ export class ResearchController {
   @Get('daily-note')
   @ApiOperation({ summary: 'Get structured fallback daily/intraday research note' })
   @ApiOkResponse({ type: ResearchDailyNoteDto })
-  dailyNote(): ApiResponse<ResearchDailyNoteDto> {
-    return ok(this.researchService.getDailyNote());
+  async dailyNote(): Promise<ApiResponse<ResearchDailyNoteDto>> {
+    return ok(await this.researchService.getDailyNote());
   }
 
   @Get('portfolio-review')
   @ApiOperation({ summary: 'Get structured fallback portfolio review' })
   @ApiOkResponse({ type: ResearchPortfolioReviewDto })
   async portfolioReview(): Promise<ApiResponse<ResearchPortfolioReviewDto>> {
-    return ok(this.researchService.getPortfolioReview());
+    return ok(await this.researchService.getPortfolioReview());
   }
 
   @Get('portfolio-context')
   @ApiOperation({ summary: 'Get Ricki portfolio context for research workflows' })
   @ApiOkResponse({ type: ResearchPortfolioContextDto })
-  portfolioContext(): ApiResponse<ResearchPortfolioContextDto> {
-    return ok(this.researchService.getPortfolioContext());
+  async portfolioContext(): Promise<ApiResponse<ResearchPortfolioContextDto>> {
+    return ok(await this.researchService.getPortfolioContext());
   }
 
   @Get('theme-exposures')
   @ApiOperation({ summary: 'List portfolio theme exposure summary with action bias' })
   @ApiOkResponse({ type: [ResearchThemeExposureSummaryDto] })
-  themeExposures(): ApiResponse<readonly ResearchThemeExposureSummaryDto[]> {
-    return ok(this.researchService.listThemeExposures());
+  async themeExposures(): Promise<ApiResponse<readonly ResearchThemeExposureSummaryDto[]>> {
+    return ok(await this.researchService.listThemeExposures());
   }
 
   @Get('ideas')
   @ApiOperation({ summary: 'List fallback research idea candidates' })
   @ApiOkResponse({ type: [ResearchIdeaDto] })
-  ideas(): ApiResponse<readonly ResearchIdeaDto[]> {
-    return ok(this.researchService.listIdeas());
+  async ideas(): Promise<ApiResponse<readonly ResearchIdeaDto[]>> {
+    return ok(await this.researchService.listIdeas());
   }
 
   @Get('theses')

@@ -30,7 +30,7 @@ describe('ResearchController', () => {
   it('returns a structured daily note fallback for the research center', async () => {
     const controller = await createController();
 
-    const response = controller.dailyNote();
+    const response = await controller.dailyNote();
 
     expect(response.success).toBe(true);
     expect(response.data).toMatchObject({
@@ -58,7 +58,7 @@ describe('ResearchController', () => {
   it('returns Ricki portfolio context with stock positions, fund exposures and action policy', async () => {
     const controller = await createController();
 
-    const response = controller.portfolioContext();
+    const response = await controller.portfolioContext();
 
     expect(response.success).toBe(true);
     expect(response.data).toMatchObject({
@@ -94,7 +94,7 @@ describe('ResearchController', () => {
   it('returns theme exposure summary with concentration and actions', async () => {
     const controller = await createController();
 
-    const response = controller.themeExposures();
+    const response = await controller.themeExposures();
 
     expect(response.success).toBe(true);
     expect(response.data).toEqual(expect.arrayContaining([
@@ -120,7 +120,7 @@ describe('ResearchController', () => {
       },
     });
 
-    expect(controller.ideas().data[0]).toMatchObject({
+    expect((await controller.ideas()).data[0]).toMatchObject({
       symbol: 'WATCHLIST-AI-ROBOTICS',
       suggestedAction: 'watch',
       factorBreakdown: expect.any(Array),
