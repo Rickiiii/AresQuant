@@ -10,6 +10,8 @@ export default defineConfig({
       '/strategies': 'http://localhost:3000',
       '/data': 'http://localhost:3000',
       '/backtests': 'http://localhost:3000',
+      '/research': 'http://localhost:3000',
+      '/portfolio': 'http://localhost:3000',
     },
   },
 });

@@ -28,6 +28,7 @@ describe('PortfolioController', () => {
               themeExposures: [],
               watchlistItems: [],
             }),
+            upsertPrimaryContext: jest.fn(async (input) => input),
           },
         },
       ],
@@ -43,6 +44,38 @@ describe('PortfolioController', () => {
           fundVisibleValue: 80000,
           cashAmount: 20000,
         },
+      },
+    });
+  });
+
+  it('seeds Ricki portfolio context', async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [PortfolioController],
+      providers: [
+        PortfolioContextService,
+        {
+          provide: PORTFOLIO_CONTEXT_REPOSITORY,
+          useValue: {
+            findPrimaryContext: jest.fn(),
+            upsertPrimaryContext: jest.fn(async (input) => input),
+          },
+        },
+      ],
+    }).compile();
+    const controller = moduleRef.get(PortfolioController);
+
+    await expect(controller.seedRickiContext()).resolves.toMatchObject({
+      success: true,
+      data: {
+        owner: 'Ricki',
+        stockAccount: {
+          positions: expect.arrayContaining([
+            expect.objectContaining({ symbol: '600366', name: '宁波韵升' }),
+          ]),
+        },
+        themeExposures: expect.arrayContaining([
+          expect.objectContaining({ theme: '海外科技' }),
+        ]),
       },
     });
   });

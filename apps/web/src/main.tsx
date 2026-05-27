@@ -276,28 +276,28 @@ const fallbackData: DashboardData = {
   strategies: [
     {
       code: 'multi-factor',
-      name: 'Multi-Factor Strategy',
+      name: '多因子策略',
       version: '1.0.0',
-      description: 'Weighted multi-factor TopN stock selection strategy for robust A-share ranking.',
+      description: '加权多因子 TopN 选股策略，用于稳健的 A 股排序。',
       configSchema: [
-        { name: 'maxPositions', type: 'number', required: true, defaultValue: 3, description: 'Maximum number of selected securities.' },
-        { name: 'normalizeMethod', type: 'string', required: true, defaultValue: 'rank', description: 'Factor normalization method: rank, zscore, or minmax.' },
-        { name: 'factors', type: 'array', required: true, defaultValue: 'momentum / roe / pe', description: 'Weighted factor definitions.' },
+        { name: 'maxPositions', type: 'number', required: true, defaultValue: 3, description: '最大入选标的数量。' },
+        { name: 'normalizeMethod', type: 'string', required: true, defaultValue: 'rank', description: '因子标准化方式：rank、zscore 或 minmax。' },
+        { name: 'factors', type: 'array', required: true, defaultValue: 'momentum / roe / pe', description: '加权因子定义。' },
       ],
     },
     {
       code: 'momentum-top-n',
-      name: 'Momentum Top N Strategy',
+      name: '动量 TopN 策略',
       version: '1.0.0',
-      description: 'Select top N securities by momentum score and rebalance with controlled turnover.',
-      configSchema: [{ name: 'maxPositions', type: 'number', required: true, defaultValue: 3, description: 'Maximum selected securities.' }],
+      description: '按动量得分选择前 N 个标的，并用换手约束控制调仓。',
+      configSchema: [{ name: 'maxPositions', type: 'number', required: true, defaultValue: 3, description: '最大入选标的数量。' }],
     },
     {
       code: 'equal-weight',
-      name: 'Equal Weight Strategy',
+      name: '等权策略',
       version: '1.0.0',
-      description: 'Allocate equal weights across selected securities as a transparent benchmark.',
-      configSchema: [{ name: 'maxPositions', type: 'number', required: true, defaultValue: 3, description: 'Maximum selected securities.' }],
+      description: '对入选标的等权配置，作为透明基准策略。',
+      configSchema: [{ name: 'maxPositions', type: 'number', required: true, defaultValue: 3, description: '最大入选标的数量。' }],
     },
   ],
   backtests: [
@@ -310,14 +310,14 @@ const fallbackData: DashboardData = {
 
 const fallbackResearchData: ResearchData = {
   playbooks: [
-    { code: 'daily-note', name: 'Daily / Intraday Note', description: '盘前、14:30 和收盘复盘，把行情翻译成持仓动作。', output: ['市场温度', '主题强弱', '持仓检查', '操作建议'] },
-    { code: 'idea-generation', name: 'Idea Generation', description: '结合主题、因子和估值生成可解释观察标的。', output: ['候选标的', '因子拆解', '风险', '触发条件'] },
-    { code: 'portfolio-review', name: 'Portfolio Review', description: '检查股票、基金、现金和主题暴露。', output: ['仓位状态', '主题暴露', '调仓优先级'] },
-    { code: 'thesis-tracker', name: 'Thesis Tracker', description: '记录每个持仓为什么持有、什么情况下改变。', output: ['核心逻辑', '反证条件', '退出规则'] },
-    { code: 'catalyst-calendar', name: 'Catalyst Calendar', description: '跟踪政策、产业、财报和海外科技映射。', output: ['事件', '影响主题', '当前应对'] },
+    { code: 'daily-note', name: '每日 / 盘中笔记', description: '盘前、14:30 和收盘复盘，把行情翻译成持仓动作。', output: ['市场温度', '主题强弱', '持仓检查', '操作建议'] },
+    { code: 'idea-generation', name: '想法生成', description: '结合主题、因子和估值生成可解释观察标的。', output: ['候选标的', '因子拆解', '风险', '触发条件'] },
+    { code: 'portfolio-review', name: '组合复盘', description: '检查股票、基金、现金和主题暴露。', output: ['仓位状态', '主题暴露', '调仓优先级'] },
+    { code: 'thesis-tracker', name: '投资逻辑跟踪', description: '记录每个持仓为什么持有、什么情况下改变。', output: ['核心逻辑', '反证条件', '退出规则'] },
+    { code: 'catalyst-calendar', name: '催化日历', description: '跟踪政策、产业、财报和海外科技映射。', output: ['事件', '影响主题', '当前应对'] },
   ],
   dailyNote: {
-    title: 'AresQuant Research Center Preview',
+    title: 'AresQuant 投研中心预览',
     marketState: 'fallback',
     topConclusion: '产品骨架已就位：先以观望和结构化复盘为主，后续接入真实持仓、行情和因子后生成更高置信度建议。',
     sections: [
@@ -333,14 +333,14 @@ const fallbackResearchData: ResearchData = {
       takeProfit: [],
       riskControl: ['主题冲高回落并跌破关键趋势时收缩高波动仓位。'],
     },
-    nextFocus: ['接入真实 Portfolio Context', '接入主题强弱数据', '记录上次判断 vs 今日验证'],
+    nextFocus: ['接入真实组合上下文', '接入主题强弱数据', '记录上次判断 vs 今日验证'],
   },
   portfolioReview: {
     positioning: {
       stockExposure: 'A 股账户半仓不到，仍有分批加仓空间。',
       fundExposure: '纳指100、通信设备、数字经济/大科技、黄金、中证1000、人工智能、绿电等暴露待结构化。',
       cashLevel: '保留风格切换和回撤买点弹药。',
-      overallRisk: 'medium',
+      overallRisk: '中等',
     },
     themeExposures: [
       { theme: 'AI / 机器人 / 物理 AI', status: '核心观察', suggestion: '等强弱确认后再分批，不追高。' },
@@ -348,7 +348,7 @@ const fallbackResearchData: ResearchData = {
       { theme: '黄金', status: '避险平衡', suggestion: '用于平衡科技高波动暴露。' },
     ],
     priorities: ['先控制主题拥挤风险', '再寻找强主题回踩买点', '保留现金应对风格切换'],
-    riskNotes: ['当前页面为 fallback，不构成买卖建议。'],
+    riskNotes: ['当前页面为预览数据，不构成买卖建议。'],
   },
   portfolioContext: {
     owner: 'Ricki',
@@ -408,7 +408,7 @@ const fallbackResearchData: ResearchData = {
   theses: [
     {
       target: '核心持仓组合',
-      status: 'active',
+      status: '进行中',
       currentAction: 'hold',
       pillars: ['围绕 AI、机器人、通信设备、大科技和黄金构建中期框架。', '当前仓位半仓不到，保留分批调整空间。'],
       risks: ['主题暴露集中', '高波动方向退潮时回撤较快'],
@@ -416,17 +416,17 @@ const fallbackResearchData: ResearchData = {
     },
   ],
   catalysts: [
-    { date: 'rolling', category: 'policy', title: 'AI / 机器人 / 数字经济政策与产业催化', relatedThemes: ['AI', '机器人', '通信设备'], impactLevel: 'high', currentResponse: '高优先级跟踪，等待具体事件日期和影响标的接入。' },
+    { date: '滚动跟踪', category: '政策', title: 'AI / 机器人 / 数字经济政策与产业催化', relatedThemes: ['AI', '机器人', '通信设备'], impactLevel: '高', currentResponse: '高优先级跟踪，等待具体事件日期和影响标的接入。' },
   ],
 };
 
 const navItems: readonly { readonly key: ViewKey; readonly label: string; readonly icon: React.ReactNode }[] = [
-  { key: 'overview', label: 'Overview', icon: <AreaChart size={16} /> },
-  { key: 'data', label: 'Data Center', icon: <DatabaseZap size={16} /> },
-  { key: 'strategies', label: 'Strategies', icon: <BrainCircuit size={16} /> },
-  { key: 'backtests', label: 'Backtests', icon: <Gauge size={16} /> },
-  { key: 'research', label: 'Research Center', icon: <Sparkles size={16} /> },
-  { key: 'risk', label: 'Risk Monitor', icon: <ShieldCheck size={16} /> },
+  { key: 'overview', label: '总览', icon: <AreaChart size={16} /> },
+  { key: 'data', label: '数据中心', icon: <DatabaseZap size={16} /> },
+  { key: 'strategies', label: '策略库', icon: <BrainCircuit size={16} /> },
+  { key: 'backtests', label: '回测', icon: <Gauge size={16} /> },
+  { key: 'research', label: '投研中心', icon: <Sparkles size={16} /> },
+  { key: 'risk', label: '风险监控', icon: <ShieldCheck size={16} /> },
 ];
 
 const equityPoints = [24, 34, 29, 48, 58, 52, 74, 66, 84, 92, 86, 98];
@@ -436,10 +436,10 @@ const factorRows = [
   { name: 'pe', weight: '20%', direction: 'negative', score: 76 },
 ];
 const stockRows = [
-  ['000001.SZ', '平安银行', '银行', '20260514', 'active'],
-  ['600000.SH', '浦发银行', '银行', '20260514', 'active'],
-  ['000333.SZ', '美的集团', '家电', '20260514', 'active'],
-  ['600519.SH', '贵州茅台', '白酒', '20260514', 'active'],
+  ['000001.SZ', '平安银行', '银行', '20260514', '正常'],
+  ['600000.SH', '浦发银行', '银行', '20260514', '正常'],
+  ['000333.SZ', '美的集团', '家电', '20260514', '正常'],
+  ['600519.SH', '贵州茅台', '白酒', '20260514', '正常'],
 ];
 
 async function fetchApi<T>(path: string): Promise<T> {
@@ -542,6 +542,122 @@ function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
 }
 
+function dataSetLabel(dataSet: string): string {
+  const labels: Readonly<Record<string, string>> = {
+    stocks: '股票池',
+    tradingCalendar: '交易日历',
+    dailyBars: '日线行情',
+    indexDailyBars: '指数日线',
+    limitPrices: '涨跌停价格',
+    suspensions: '停复牌',
+    adjFactors: '复权因子',
+    financialFactors: '财务因子',
+  };
+  return labels[dataSet] ?? dataSet;
+}
+
+function statusLabel(status: string): string {
+  const labels: Readonly<Record<string, string>> = {
+    SUCCESS: '成功',
+    FAILED: '失败',
+    RUNNING: '运行中',
+    PENDING: '等待中',
+    CANCELED: '已取消',
+  };
+  return labels[status] ?? status;
+}
+
+function actionLabel(action: string): string {
+  const labels: Readonly<Record<string, string>> = {
+    hold: '持有',
+    add: '加仓',
+    build: '分批建仓',
+    watch: '观察',
+    take_profit: '止盈',
+    risk_control: '风控',
+    pending: '待确认',
+    active: '进行中',
+    medium: '中等',
+    high: '高',
+    low: '低',
+  };
+  return labels[action] ?? action;
+}
+
+function sourceLabel(source: string): string {
+  const labels: Readonly<Record<string, string>> = {
+    stock: '股票',
+    fund: '基金',
+  };
+  return labels[source] ?? source;
+}
+
+function riskLevelLabel(level: string): string {
+  const labels: Readonly<Record<string, string>> = {
+    low: '低',
+    medium: '中等',
+    high: '高',
+  };
+  return labels[level] ?? level;
+}
+
+function strategyDisplayName(strategy: Pick<StrategyItem, 'code' | 'name'> | string): string {
+  const code = typeof strategy === 'string' ? strategy : strategy.code;
+  const fallback = typeof strategy === 'string' ? strategy : strategy.name;
+  const labels: Readonly<Record<string, string>> = {
+    'multi-factor': '多因子策略',
+    'momentum-top-n': '动量 TopN 策略',
+    'equal-weight': '等权策略',
+    'Multi-Factor Strategy': '多因子策略',
+    'Momentum Top N Strategy': '动量 TopN 策略',
+    'Equal Weight Strategy': '等权策略',
+  };
+  return labels[code] ?? fallback;
+}
+
+function strategyDisplayDescription(strategy: StrategyItem): string {
+  const labels: Readonly<Record<string, string>> = {
+    'multi-factor': '加权多因子 TopN 选股策略，用于稳健的 A 股排序。',
+    'momentum-top-n': '按动量得分选择前 N 个标的，并用换手约束控制调仓。',
+    'equal-weight': '对入选标的等权配置，作为透明基准策略。',
+  };
+  return labels[strategy.code] ?? strategy.description ?? '';
+}
+
+function playbookDisplayName(playbook: ResearchPlaybook): string {
+  const labels: Readonly<Record<string, string>> = {
+    'daily-note': '每日 / 盘中笔记',
+    'idea-generation': '想法生成',
+    'portfolio-review': '组合复盘',
+    'thesis-tracker': '投资逻辑跟踪',
+    'catalyst-calendar': '催化日历',
+  };
+  return labels[playbook.code] ?? playbook.name;
+}
+
+function noteTitle(title: string): string {
+  return title.replace('Research Center', '投研中心').replace('Fallback', '预览').replace('fallback', '预览');
+}
+
+function localizedText(text: string): string {
+  return text
+    .replaceAll('Research Center', '投研中心')
+    .replaceAll('Research ideas', '投研想法')
+    .replaceAll('Portfolio Context', '组合上下文')
+    .replaceAll('sample signals', '样例信号')
+    .replaceAll('sample signal', '样例信号')
+    .replaceAll('fallback', '预览')
+    .replaceAll('Fallback', '预览');
+}
+
+function directionLabel(direction: string): string {
+  const labels: Readonly<Record<string, string>> = {
+    positive: '正向',
+    negative: '反向',
+  };
+  return labels[direction] ?? direction;
+}
+
 function getSuccessRate(data: DashboardData): number {
   const successCount = data.overview.backtests.byStatus.SUCCESS ?? 0;
   const totalBacktests = Math.max(data.overview.backtests.total, 1);
@@ -564,13 +680,13 @@ function App(): React.ReactElement {
           <div className="brand-mark"><CandlestickChart size={22} /></div>
           <div>
             <strong>AresQuant</strong>
-            <span>A-share strategy OS</span>
+            <span>A 股策略工作台</span>
           </div>
         </div>
 
         <div className="command-box">
           <Search size={15} />
-          <span>Search strategies, symbols...</span>
+          <span>搜索策略、标的...</span>
           <kbd>⌘K</kbd>
         </div>
 
@@ -590,8 +706,8 @@ function App(): React.ReactElement {
             <div className="micro-bars">{Array.from({ length: 24 }, (_, index) => <i key={index} style={{ height: `${18 + ((index * 7) % 34)}px` }} />)}</div>
           </div>
           <div className="system-card">
-            <div className="pulse-row"><span className={isLive ? 'pulse live' : 'pulse'} />{isLive ? 'Live API connected' : 'Preview fallback'}</div>
-            <p>Phase6 Dashboard 正在使用后端聚合接口，前端可独立预览。</p>
+            <div className="pulse-row"><span className={isLive ? 'pulse live' : 'pulse'} />{isLive ? '实时 API 已连接' : '预览数据模式'}</div>
+            <p>Phase6 工作台正在使用后端聚合接口，前端可独立预览。</p>
           </div>
         </div>
       </aside>
@@ -611,23 +727,23 @@ function App(): React.ReactElement {
 
 function TopBar(props: { readonly activeView: ViewKey; readonly refreshedAt: string }): React.ReactElement {
   const titleMap: Readonly<Record<ViewKey, string>> = {
-    overview: 'Unified Command Center',
-    data: 'Data Center Observatory',
-    strategies: 'Strategy Laboratory',
-    backtests: 'Backtest Control Room',
-    research: 'Research Center',
-    risk: 'Risk Monitor',
+    overview: '统一指挥台',
+    data: '数据中心',
+    strategies: '策略实验室',
+    backtests: '回测控制台',
+    research: '投研中心',
+    risk: '风险监控',
   };
 
   return (
     <header className="top-bar">
       <div>
-        <div className="breadcrumb"><Sparkles size={14} /> Phase6 Dashboard <span>/</span> {titleMap[props.activeView]}</div>
+        <div className="breadcrumb"><Sparkles size={14} /> 第 6 阶段工作台 <span>/</span> {titleMap[props.activeView]}</div>
         <h1>{titleMap[props.activeView]}</h1>
       </div>
       <div className="top-actions">
-        <span className="timestamp">Last refresh {props.refreshedAt}</span>
-        <button className="primary-action"><RefreshCcw size={16} /> Refresh telemetry</button>
+        <span className="timestamp">最近刷新 {props.refreshedAt}</span>
+        <button className="primary-action"><RefreshCcw size={16} /> 刷新状态</button>
       </div>
     </header>
   );
@@ -640,9 +756,9 @@ function OverviewView(props: { readonly data: DashboardData; readonly coverage: 
     <div className="view-stack">
       <section className="hero-card">
         <div>
-          <div className="eyebrow"><Zap size={14} /> Quant Intelligence Layer</div>
+          <div className="eyebrow"><Zap size={14} /> 量化智能层</div>
           <h2>策略、数据与回测的统一量化驾驶舱</h2>
-          <p>从数据覆盖到策略配置，再到回测表现与风险状态，AresQuant Dashboard 将 A 股量化研究流程压缩进一个高密度、可观测的操作界面。</p>
+          <p>从数据覆盖到策略配置，再到回测表现与风险状态，AresQuant 工作台将 A 股量化研究流程压缩进一个高密度、可观测的操作界面。</p>
         </div>
         <div className="hero-orb"><Radar size={52} /></div>
       </section>
@@ -651,7 +767,7 @@ function OverviewView(props: { readonly data: DashboardData; readonly coverage: 
         <MetricCard icon={<DatabaseZap />} label="股票池" value={formatNumber(props.data.overview.dataCenter.stockCount)} helper={`最新 ${props.data.overview.dataCenter.latestDailyBarDate ?? '--'}`} tone="violet" />
         <MetricCard icon={<BarChart3 />} label="日线记录" value={formatNumber(props.data.overview.dataCenter.dailyBarCount)} helper="行情数据覆盖" tone="cyan" />
         <MetricCard icon={<BrainCircuit />} label="策略数量" value={String(props.data.overview.strategies.total)} helper={props.data.overview.strategies.codes.join(' / ')} tone="green" />
-        <MetricCard icon={<Activity />} label="回测成功率" value={formatPercent(props.successRate)} helper={`${successCount}/${props.data.overview.backtests.total} successful`} tone="amber" />
+        <MetricCard icon={<Activity />} label="回测成功率" value={formatPercent(props.successRate)} helper={`${successCount}/${props.data.overview.backtests.total} 成功`} tone="amber" />
       </section>
 
       <section className="main-grid">
@@ -675,13 +791,13 @@ function DataCenterView(props: { readonly coverage: readonly DataCoverage[] }): 
     <div className="view-stack">
       <section className="split-grid data-hero-grid">
         <article className="glass-card xl-card">
-          <CardHeader icon={<DatabaseZap />} title="Coverage Matrix" subtitle="数据集覆盖、最新同步日期和相对完整度" />
+          <CardHeader icon={<DatabaseZap />} title="覆盖矩阵" subtitle="数据集覆盖、最新同步日期和相对完整度" />
           <div className="coverage-matrix">
             {props.coverage.map((item) => (
               <div className="matrix-row" key={item.dataSet}>
                 <div>
-                  <strong>{item.dataSet}</strong>
-                  <span>{item.latestDate ?? 'not synced'}</span>
+                  <strong>{dataSetLabel(item.dataSet)}</strong>
+                  <span>{item.latestDate ?? '未同步'}</span>
                 </div>
                 <div className="matrix-bar"><i style={{ width: `${Math.max(8, (item.total / maxTotal) * 100)}%` }} /></div>
                 <em>{formatNumber(item.total)}</em>
@@ -690,18 +806,18 @@ function DataCenterView(props: { readonly coverage: readonly DataCoverage[] }): 
           </div>
         </article>
         <article className="glass-card sync-card">
-          <CardHeader icon={<Waves />} title="Sync Pulse" subtitle="最近数据同步节奏" />
+          <CardHeader icon={<Waves />} title="同步脉冲" subtitle="最近数据同步节奏" />
           <div className="pulse-chart">
             {props.coverage.slice(0, 8).map((item, index) => <i key={item.dataSet} style={{ height: `${38 + ((index * 19) % 92)}px` }} />)}
           </div>
-          <p className="muted-copy">数据层当前支持 stocks、dailyBars、financialFactors、adjFactors、tradingCalendar 等 Dashboard 只读聚合。</p>
+          <p className="muted-copy">数据层当前支持股票池、日线行情、财务因子、复权因子、交易日历等工作台只读聚合。</p>
         </article>
       </section>
 
       <article className="glass-card">
-        <CardHeader icon={<Table2 />} title="Stock Universe Preview" subtitle="股票池展示表格样式预览" />
+        <CardHeader icon={<Table2 />} title="股票池预览" subtitle="股票池展示表格样式预览" />
         <div className="data-table">
-          <div className="table-head"><span>TS Code</span><span>Name</span><span>Industry</span><span>Latest</span><span>Status</span></div>
+          <div className="table-head"><span>TS Code</span><span>名称</span><span>行业</span><span>最新日期</span><span>状态</span></div>
           {stockRows.map((row) => (
             <div className="table-row" key={row[0]}>{row.map((cell, index) => <span className={index === 4 ? 'positive-text' : ''} key={cell}>{cell}</span>)}</div>
           ))}
@@ -721,13 +837,13 @@ function StrategiesView(props: { readonly strategies: readonly StrategyItem[] })
               <span className="strategy-code">{strategy.code}</span>
               <span className="version-pill">v{strategy.version}</span>
             </div>
-            <h2>{strategy.name}</h2>
-            <p>{strategy.description}</p>
+            <h2>{strategyDisplayName(strategy)}</h2>
+            <p>{strategyDisplayDescription(strategy)}</p>
             <div className="schema-list">
               {strategy.configSchema.map((field) => (
                 <div className="schema-row" key={field.name}>
                   <div><strong>{field.name}</strong><span>{field.description}</span></div>
-                  <em>{field.type}{field.required ? ' · required' : ''}</em>
+                  <em>{field.type}{field.required ? ' · 必填' : ''}</em>
                 </div>
               ))}
             </div>
@@ -737,24 +853,24 @@ function StrategiesView(props: { readonly strategies: readonly StrategyItem[] })
 
       <section className="split-grid">
         <article className="glass-card">
-          <CardHeader icon={<Layers3 />} title="Factor Weights" subtitle="Multi-factor strategy preview" />
+          <CardHeader icon={<Layers3 />} title="因子权重" subtitle="多因子策略预览" />
           <div className="factor-list">
             {factorRows.map((factor) => (
               <div className="factor-row" key={factor.name}>
-                <div><strong>{factor.name}</strong><span>{factor.direction} · weight {factor.weight}</span></div>
+                <div><strong>{factor.name}</strong><span>{directionLabel(factor.direction)} · 权重 {factor.weight}</span></div>
                 <div className="radial-score" style={{ '--score': `${factor.score}%` } as React.CSSProperties}>{factor.score}</div>
               </div>
             ))}
           </div>
         </article>
         <article className="glass-card">
-          <CardHeader icon={<GitBranch />} title="Signal Sample" subtitle="Dashboard sample output" />
+          <CardHeader icon={<GitBranch />} title="信号样例" subtitle="工作台样例输出" />
           <div className="signal-grid">
             {['000001', '600000', '000333'].map((symbol, index) => (
               <div className="signal-card" key={symbol}>
                 <span>{symbol}</span>
                 <strong>{formatPercent(33.3 - index * 2.1)}</strong>
-                <small>target weight</small>
+                <small>目标权重</small>
               </div>
             ))}
           </div>
@@ -772,13 +888,13 @@ function BacktestsView(props: { readonly backtests: readonly BacktestItem[]; rea
         <StatusCard byStatus={props.byStatus} latestTask={props.backtests[0] ?? null} />
       </section>
       <article className="glass-card">
-        <CardHeader icon={<ListChecks />} title="Backtest Runs" subtitle="任务列表、策略、资金与状态" />
+        <CardHeader icon={<ListChecks />} title="回测任务" subtitle="任务列表、策略、资金与状态" />
         <div className="data-table backtest-table">
-          <div className="table-head"><span>Name</span><span>Strategy</span><span>Range</span><span>Capital</span><span>Status</span></div>
+          <div className="table-head"><span>名称</span><span>策略</span><span>区间</span><span>资金</span><span>状态</span></div>
           {props.backtests.map((task) => (
             <div className="table-row" key={task.id}>
               <span>{task.name}</span>
-              <span>{task.strategyName}</span>
+              <span>{strategyDisplayName(task.strategyName)}</span>
               <span>{task.startDate} → {task.endDate}</span>
               <span>{formatMoney(task.initialCapital)}</span>
               <span><StatusPill status={task.status} /></span>
@@ -810,14 +926,14 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
     <div className="view-stack research-view">
       <section className="hero-card research-hero">
         <div>
-          <div className="eyebrow"><Sparkles size={14} /> {daily.marketState === 'live' && props.isLive ? 'Research API live' : 'Research fallback preview'}</div>
+          <div className="eyebrow"><Sparkles size={14} /> {daily.marketState === 'live' && props.isLive ? '投研 API 实时连接' : '投研预览数据'}</div>
           <h2>今日决策板</h2>
-          <p>{daily.topConclusion}</p>
+          <p>{localizedText(daily.topConclusion)}</p>
         </div>
         <div className="research-brief-panel">
-          <span>Signal posture</span>
-          <strong>{context.actionPolicy.defaultBias}</strong>
-          <small>{daily.nextFocus[0] ?? '等待下一步投研信号'}</small>
+          <span>信号姿态</span>
+          <strong>{actionLabel(context.actionPolicy.defaultBias)}</strong>
+          <small>{daily.nextFocus[0] === undefined ? '等待下一步投研信号' : localizedText(daily.nextFocus[0])}</small>
         </div>
       </section>
 
@@ -825,48 +941,48 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
         <div><span>估算组合口径</span><strong>¥{formatNumber(Math.round(estimatedPortfolioValue))}</strong><small>股票成本 + 可见基金</small></div>
         <div><span>股票持仓</span><strong>{context.stockAccount.positions.length}</strong><small>{context.stockAccount.positionLevel}</small></div>
         <div><span>主题暴露</span><strong>{props.data.themeExposures.length}</strong><small>股票 + 基金矩阵</small></div>
-        <div><span>观察信号</span><strong>{primaryIdeas.length}</strong><small>{daily.marketState === 'live' ? '来自策略样例' : 'fallback 候选'}</small></div>
+        <div><span>观察信号</span><strong>{primaryIdeas.length}</strong><small>{daily.marketState === 'live' ? '来自策略样例' : '预览候选'}</small></div>
         <div><span>风险约束</span><strong>{riskCount}</strong><small>动作前检查</small></div>
       </section>
 
       <section className="research-command-grid">
         <article className="glass-card research-note-card">
-          <CardHeader icon={<Radar />} title={daily.title} subtitle="14:30 盘中复盘 / 盘前计划 / 收盘验证" />
+          <CardHeader icon={<Radar />} title={noteTitle(daily.title)} subtitle="14:30 盘中复盘 / 盘前计划 / 收盘验证" />
           <div className="research-section-list">
             {daily.sections.map((section) => (
               <div className="research-section" key={section.code}>
                 <strong>{section.title}</strong>
-                {section.bullets.map((bullet) => <span key={bullet}>{bullet}</span>)}
+                {section.bullets.map((bullet) => <span key={bullet}>{localizedText(bullet)}</span>)}
               </div>
             ))}
           </div>
         </article>
 
         <article className="glass-card action-board">
-          <CardHeader icon={<ListChecks />} title="Action Buckets" subtitle="所有建议必须落到固定动作分类" />
+          <CardHeader icon={<ListChecks />} title="动作分组" subtitle="所有建议必须落到固定动作分类" />
           {actionBuckets.map(([label, items]) => (
             <div className="action-row" key={label}>
               <span>{label}</span>
               <strong>{items.length}</strong>
-              <small>{items[0] ?? '等待真实信号确认'}</small>
+              <small>{items[0] === undefined ? '等待真实信号确认' : localizedText(items[0])}</small>
             </div>
           ))}
           <div className="policy-strip">
-            <strong>默认动作：{context.actionPolicy.defaultBias}</strong>
-            {context.actionPolicy.rules.map((rule) => <span key={rule}>{rule}</span>)}
+            <strong>默认动作：{actionLabel(context.actionPolicy.defaultBias)}</strong>
+            {context.actionPolicy.rules.map((rule) => <span key={rule}>{localizedText(rule)}</span>)}
           </div>
         </article>
 
         <article className="glass-card idea-board">
-          <CardHeader icon={<Zap />} title="Idea Engine" subtitle="策略信号转成投研观察卡" />
+          <CardHeader icon={<Zap />} title="想法引擎" subtitle="策略信号转成投研观察卡" />
           <div className="idea-stack">
             {primaryIdeas.map((idea) => (
               <div className="idea-card compact" key={idea.symbol}>
-                <div className="strategy-topline"><span className="strategy-code">{idea.symbol}</span><span className="version-pill">{idea.suggestedAction}</span></div>
+                <div className="strategy-topline"><span className="strategy-code">{idea.symbol}</span><span className="version-pill">{actionLabel(idea.suggestedAction)}</span></div>
                 <h3>{idea.name}</h3>
-                <p>{idea.oneLineThesis}</p>
+                <p>{localizedText(idea.oneLineThesis)}</p>
                 <div className="factor-mini-list">
-                  {idea.factorBreakdown.slice(0, 3).map((factor) => <span key={factor.factor}>{factor.factor}: {factor.signal}</span>)}
+                  {idea.factorBreakdown.slice(0, 3).map((factor) => <span key={factor.factor}>{factor.factor}: {actionLabel(factor.signal)}</span>)}
                 </div>
               </div>
             ))}
@@ -880,12 +996,12 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
           <div className="portfolio-stat-row">
             <div><span>成本口径合计</span><strong>¥{formatNumber(Math.round(stockMarketValue))}</strong></div>
             <div><span>持仓数</span><strong>{context.stockAccount.positions.length}</strong></div>
-            <div><span>动作基准</span><strong>{context.actionPolicy.defaultBias}</strong></div>
+            <div><span>动作基准</span><strong>{actionLabel(context.actionPolicy.defaultBias)}</strong></div>
           </div>
           <div className="position-list">
             {context.stockAccount.positions.map((position) => (
               <div className="position-card" key={position.symbol}>
-                <div className="strategy-topline"><span className="strategy-code">{position.symbol}</span><span className="version-pill">{position.actionBias}</span></div>
+                <div className="strategy-topline"><span className="strategy-code">{position.symbol}</span><span className="version-pill">{actionLabel(position.actionBias)}</span></div>
                 <strong>{position.name}</strong>
                 <span>{position.quantity} 股 @ ¥{position.costPrice.toFixed(2)}{position.latestPrice === undefined || position.latestPrice === null ? '' : ` / 最新 ¥${position.latestPrice.toFixed(2)}`} · {position.theme}</span>
                 {position.marketValue !== undefined && position.marketValue !== null && <span>市值 ¥{formatNumber(Math.round(position.marketValue))}{position.unrealizedPnl === undefined || position.unrealizedPnl === null ? '' : ` · 浮盈亏 ¥${formatNumber(Math.round(position.unrealizedPnl))}`}</span>}
@@ -913,20 +1029,20 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
       </section>
 
       <article className="glass-card risk-flag-panel">
-        <CardHeader icon={<ShieldCheck />} title="Portfolio Risk Flags" subtitle="后续所有建议都必须先通过这些组合约束" />
+        <CardHeader icon={<ShieldCheck />} title="组合风险标记" subtitle="后续所有建议都必须先通过这些组合约束" />
         <div className="risk-flag-grid">
           {context.riskFlags.map((flag) => <div className="risk-flag" key={flag}><span className="pulse warning" />{flag}</div>)}
         </div>
       </article>
 
       <article className="glass-card theme-exposure-panel">
-        <CardHeader icon={<Waves />} title="Theme Exposure Matrix" subtitle="把股票和基金暴露合并成可操作的主题视图" />
+        <CardHeader icon={<Waves />} title="主题暴露矩阵" subtitle="把股票和基金暴露合并成可操作的主题视图" />
         <div className="theme-exposure-grid">
           {props.data.themeExposures.map((exposure) => (
             <div className="theme-exposure-card" key={`${exposure.theme}-${exposure.source}`}>
-              <div className="strategy-topline"><span className="strategy-code">{exposure.theme}</span><span className="version-pill">{exposure.actionBias}</span></div>
+              <div className="strategy-topline"><span className="strategy-code">{exposure.theme}</span><span className="version-pill">{actionLabel(exposure.actionBias)}</span></div>
               <div className="theme-exposure-meta">
-                <span>{exposure.source}</span>
+                <span>{sourceLabel(exposure.source)}</span>
                 <strong>{exposure.weightPercent === null ? '待接实时权重' : `${exposure.weightPercent.toFixed(2)}%`}</strong>
               </div>
               <p>{exposure.riskNote}</p>
@@ -938,7 +1054,7 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
 
       <section className="research-grid three-way">
         <article className="glass-card">
-          <CardHeader icon={<Activity />} title="Portfolio Context" subtitle={`整体风险：${props.data.portfolioReview.positioning.overallRisk}`} />
+          <CardHeader icon={<Activity />} title="组合上下文" subtitle={`整体风险：${riskLevelLabel(props.data.portfolioReview.positioning.overallRisk)}`} />
           <div className="theme-stack">
             {props.data.portfolioReview.themeExposures.map((item) => (
               <div className="theme-card" key={item.theme}>
@@ -951,7 +1067,7 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
         </article>
 
         <article className="glass-card">
-          <CardHeader icon={<BrainCircuit />} title="Signal Evidence" subtitle="候选理由、风险与触发条件" />
+          <CardHeader icon={<BrainCircuit />} title="信号证据" subtitle="候选理由、风险与触发条件" />
           {primaryIdeas.map((idea) => (
             <div className="evidence-card" key={`${idea.symbol}-evidence`}>
               <strong>{idea.name}</strong>
@@ -962,11 +1078,11 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
         </article>
 
         <article className="glass-card">
-          <CardHeader icon={<GitBranch />} title="Thesis & Catalysts" subtitle="为什么持有，以及什么会改变判断" />
+          <CardHeader icon={<GitBranch />} title="投资逻辑与催化" subtitle="为什么持有，以及什么会改变判断" />
           {props.data.theses.map((thesis) => (
             <div className="thesis-card" key={thesis.target}>
               <strong>{thesis.target}</strong>
-              <span>{thesis.status} · {thesis.currentAction}</span>
+              <span>{actionLabel(thesis.status)} · {actionLabel(thesis.currentAction)}</span>
               <p>{thesis.pillars[0]}</p>
             </div>
           ))}
@@ -981,11 +1097,11 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
       </section>
 
       <article className="glass-card">
-        <CardHeader icon={<Table2 />} title="Research Playbooks" subtitle="吸收成熟投研产品工作流，但围绕 Ricki 的 A 股持仓重构" />
+        <CardHeader icon={<Table2 />} title="投研工作流" subtitle="吸收成熟投研产品工作流，但围绕 Ricki 的 A 股持仓重构" />
         <div className="playbook-grid">
           {props.data.playbooks.map((playbook) => (
             <div className="playbook-card" key={playbook.code}>
-              <strong>{playbook.name}</strong>
+              <strong>{playbookDisplayName(playbook)}</strong>
               <p>{playbook.description}</p>
               <div>{playbook.output.map((item) => <span key={item}>{item}</span>)}</div>
             </div>
@@ -1003,15 +1119,15 @@ function RiskView(props: { readonly data: DashboardData }): React.ReactElement {
   return (
     <div className="view-stack">
       <section className="risk-grid">
-        <MetricCard icon={<ShieldCheck />} label="策略边界" value="Safe" helper="未进入模拟盘 / 实盘" tone="green" />
+        <MetricCard icon={<ShieldCheck />} label="策略边界" value="安全" helper="未进入模拟盘 / 实盘" tone="green" />
         <MetricCard icon={<CircleDot />} label="失败任务" value={String(failed)} helper="异常路径可追踪" tone="amber" />
         <MetricCard icon={<Activity />} label="运行任务" value={String(running)} helper="队列状态监控" tone="cyan" />
-        <MetricCard icon={<Zap />} label="Live Trading" value="Disabled" helper="Phase6 明确禁用" tone="violet" />
+        <MetricCard icon={<Zap />} label="实盘交易" value="已禁用" helper="Phase6 明确禁用" tone="violet" />
       </section>
       <article className="glass-card risk-console">
-        <CardHeader icon={<ShieldCheck />} title="Boundary Guardrails" subtitle="当前阶段约束检查" />
-        {['No Broker / QMT / PTrade integration', 'No paper trading subsystem', 'No live trading subsystem', 'No OptimizationService', 'No machine learning dependency'].map((item) => (
-          <div className="guard-row" key={item}><span className="pulse live" />{item}<strong>PASS</strong></div>
+        <CardHeader icon={<ShieldCheck />} title="边界护栏" subtitle="当前阶段约束检查" />
+        {['未接入 Broker / QMT / PTrade', '未启用模拟交易子系统', '未启用实盘交易子系统', '未启用 OptimizationService', '未引入机器学习依赖'].map((item) => (
+          <div className="guard-row" key={item}><span className="pulse live" />{item}<strong>通过</strong></div>
         ))}
       </article>
     </div>
@@ -1038,9 +1154,9 @@ function MetricCard(props: {
 function EquityCard(): React.ReactElement {
   return (
     <article className="glass-card chart-card">
-      <CardHeader icon={<LineChart />} title="Equity telemetry" subtitle="净值曲线、回撤与收益节奏" />
+      <CardHeader icon={<LineChart />} title="净值监控" subtitle="净值曲线、回撤与收益节奏" />
       <div className="chart-surface">
-        <svg viewBox="0 0 720 270" role="img" aria-label="equity curve">
+        <svg viewBox="0 0 720 270" role="img" aria-label="净值曲线">
           <defs>
             <linearGradient id="curve" x1="0" x2="1" y1="0" y2="0">
               <stop stopColor="#7170ff" />
@@ -1056,8 +1172,8 @@ function EquityCard(): React.ReactElement {
           <path d="M22 226 C92 182, 114 204, 172 146 S302 104, 356 124 S498 42, 574 72 S658 44, 700 28" fill="none" stroke="url(#curve)" strokeLinecap="round" strokeWidth="4" />
           {equityPoints.map((point, index) => <circle cx={28 + index * 61} cy={238 - point * 2} fill="#f7f8f8" key={index} opacity="0.7" r="3" />)}
         </svg>
-        <div className="chart-chip"><TrendingUp size={14} /> +12.4% cumulative</div>
-        <div className="chart-stats"><span>Sharpe 1.60</span><span>MaxDD 5.0%</span><span>Win 55%</span></div>
+        <div className="chart-chip"><TrendingUp size={14} /> 累计 +12.4%</div>
+        <div className="chart-stats"><span>Sharpe 1.60</span><span>最大回撤 5.0%</span><span>胜率 55%</span></div>
       </div>
     </article>
   );
@@ -1071,11 +1187,11 @@ function StatusCard(props: {
 
   return (
     <article className="glass-card">
-      <CardHeader icon={<ShieldCheck />} title="Backtest status" subtitle="任务状态分布" />
+      <CardHeader icon={<ShieldCheck />} title="回测状态" subtitle="任务状态分布" />
       <div className="status-stack">
         {Object.entries(props.byStatus).map(([status, count]) => (
           <div className="status-row" key={status}>
-            <span>{status}</span>
+            <span>{statusLabel(status)}</span>
             <div className="status-bar"><i style={{ width: `${Math.min(100, (count / total) * 100)}%` }} /></div>
             <strong>{count}</strong>
           </div>
@@ -1083,7 +1199,7 @@ function StatusCard(props: {
       </div>
       {props.latestTask && (
         <div className="latest-task">
-          <span>Latest</span>
+          <span>最新任务</span>
           <strong>{props.latestTask.name}</strong>
           <small>{props.latestTask.startDate} → {props.latestTask.endDate}</small>
         </div>
@@ -1095,11 +1211,11 @@ function StatusCard(props: {
 function DataCoverageCard(props: { readonly coverage: readonly DataCoverage[] }): React.ReactElement {
   return (
     <article className="glass-card">
-      <CardHeader icon={<Boxes />} title="Data coverage" subtitle="Count and latest date" />
+      <CardHeader icon={<Boxes />} title="数据覆盖" subtitle="数量与最新日期" />
       <div className="coverage-list">
         {props.coverage.map((item) => (
           <div className="coverage-item" key={item.dataSet}>
-            <div><strong>{item.dataSet}</strong><span>{item.latestDate ?? 'not synced'}</span></div>
+            <div><strong>{dataSetLabel(item.dataSet)}</strong><span>{item.latestDate ?? '未同步'}</span></div>
             <em>{formatNumber(item.total)}</em>
           </div>
         ))}
@@ -1111,13 +1227,13 @@ function DataCoverageCard(props: { readonly coverage: readonly DataCoverage[] })
 function StrategiesCompactCard(props: { readonly strategies: readonly StrategyItem[] }): React.ReactElement {
   return (
     <article className="glass-card">
-      <CardHeader icon={<GitBranch />} title="Strategies" subtitle="Config schema ready" />
+      <CardHeader icon={<GitBranch />} title="策略" subtitle="配置结构已就绪" />
       <div className="strategy-list">
         {props.strategies.map((strategy) => (
           <div className="strategy-card" key={strategy.code}>
-            <div><strong>{strategy.name}</strong><span>{strategy.code} · v{strategy.version}</span></div>
-            <p>{strategy.description}</p>
-            <small>{strategy.configSchema.length} config fields</small>
+            <div><strong>{strategyDisplayName(strategy)}</strong><span>{strategy.code} · v{strategy.version}</span></div>
+            <p>{strategyDisplayDescription(strategy)}</p>
+            <small>{strategy.configSchema.length} 个配置字段</small>
           </div>
         ))}
       </div>
@@ -1128,13 +1244,13 @@ function StrategiesCompactCard(props: { readonly strategies: readonly StrategyIt
 function BacktestsCompactCard(props: { readonly backtests: readonly BacktestItem[] }): React.ReactElement {
   return (
     <article className="glass-card">
-      <CardHeader icon={<Gauge />} title="Recent backtests" subtitle="Dashboard summaries" />
+      <CardHeader icon={<Gauge />} title="近期回测" subtitle="工作台摘要" />
       <div className="backtest-list">
         {props.backtests.slice(0, 4).map((task) => (
           <div className="backtest-item" key={task.id}>
             <StatusPill status={task.status} />
             <strong>{task.name}</strong>
-            <small>{task.strategyName} · {task.initialCapital}</small>
+            <small>{strategyDisplayName(task.strategyName)} · {task.initialCapital}</small>
           </div>
         ))}
       </div>
@@ -1143,7 +1259,7 @@ function BacktestsCompactCard(props: { readonly backtests: readonly BacktestItem
 }
 
 function StatusPill(props: { readonly status: string }): React.ReactElement {
-  return <span className={`status-pill ${props.status.toLowerCase()}`}>{props.status}</span>;
+  return <span className={`status-pill ${props.status.toLowerCase()}`}>{statusLabel(props.status)}</span>;
 }
 
 function CardHeader(props: { readonly icon: React.ReactNode; readonly title: string; readonly subtitle: string }): React.ReactElement {

@@ -15,6 +15,8 @@
   --cyan: #38bdf8;
   --amber: #f6c177;
   --danger: #ff7b8a;
+  --page-gutter: 20px;
+  --sidebar-width: 292px;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-feature-settings: 'cv01', 'ss03';
   background: var(--bg);
@@ -39,12 +41,10 @@ button { cursor: pointer; }
 
 .app-shell {
   position: relative;
-  display: grid;
-  grid-template-columns: 292px minmax(0, 1fr);
-  gap: 24px;
+  display: block;
   min-height: 100vh;
-  padding: 24px;
-  overflow: hidden;
+  padding: var(--page-gutter) var(--page-gutter) var(--page-gutter) calc(var(--sidebar-width) + var(--page-gutter) * 2);
+  overflow: visible;
 }
 
 .aurora {
@@ -83,15 +83,20 @@ button { cursor: pointer; }
 }
 
 .sidebar {
-  position: sticky;
-  top: 24px;
-  align-self: start;
-  height: calc(100vh - 48px);
+  position: fixed;
+  z-index: 20;
+  top: var(--page-gutter);
+  left: var(--page-gutter);
+  width: var(--sidebar-width);
+  height: calc(100vh - var(--page-gutter) * 2);
+  height: calc(100dvh - var(--page-gutter) * 2);
   padding: 20px;
   border-radius: 24px;
   display: flex;
   flex-direction: column;
   gap: 22px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .brand-block {
@@ -814,8 +819,19 @@ button { cursor: pointer; }
 }
 
 @media (max-width: 1180px) {
-  .app-shell { grid-template-columns: 1fr; }
-  .sidebar { position: relative; height: auto; top: 0; }
+  .app-shell {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+  .sidebar {
+    position: relative;
+    top: 0;
+    width: auto;
+    height: auto;
+    border-radius: 24px;
+    overflow: visible;
+  }
   .metric-grid, .risk-grid, .three-column, .strategy-grid-wide, .research-grid.three-way, .playbook-grid, .risk-flag-grid, .theme-exposure-grid, .research-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .main-grid, .split-grid, .data-hero-grid, .research-grid, .research-command-grid { grid-template-columns: 1fr; }
   .featured-strategy { grid-column: span 1; }

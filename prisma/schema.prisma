@@ -348,6 +348,7 @@ model PortfolioAccount {
   themeExposures ThemeExposure[]
   watchlistItems WatchlistItem[]
 
+  @@unique([owner, name])
   @@index([owner, isPrimary])
   @@map("portfolio_accounts")
 }

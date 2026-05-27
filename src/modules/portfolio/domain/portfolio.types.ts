@@ -11,6 +11,7 @@ export interface PortfolioAccountRecord {
   readonly visibleAssetValue: number | null;
   readonly cashAmount: number | null;
   readonly positionLevel: string | null;
+  readonly isPrimary?: boolean;
 }
 
 export interface PortfolioStockHoldingRecord {

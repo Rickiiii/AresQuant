@@ -56,10 +56,49 @@ describe('PortfolioContextService', () => {
   it('returns null when no persisted portfolio context exists', async () => {
     const repository: PortfolioContextRepository = {
       findPrimaryContext: jest.fn().mockResolvedValue(null),
+      upsertPrimaryContext: jest.fn(),
     };
     const service = new PortfolioContextService(repository);
 
     await expect(service.getContext('Ricki')).resolves.toBeNull();
+  });
+
+  it('seeds Ricki portfolio context through repository upsert', async () => {
+    const repository = createRepository();
+    const service = new PortfolioContextService(repository);
+
+    const context = await service.seedRickiContext();
+
+    expect(repository.upsertPrimaryContext).toHaveBeenCalledWith(expect.objectContaining({
+      account: expect.objectContaining({
+        owner: 'Ricki',
+        name: 'A 股账户 + 可见基金持仓',
+        accountType: 'mixed',
+        isPrimary: true,
+      }),
+      stockHoldings: expect.arrayContaining([
+        expect.objectContaining({ symbol: '600366', name: '宁波韵升', quantity: 800 }),
+        expect.objectContaining({ symbol: '601689', name: '拓普集团', quantity: 200 }),
+        expect.objectContaining({ symbol: '002031', name: '巨轮智能', quantity: 1500 }),
+        expect.objectContaining({ symbol: '002714', name: '牧原股份', quantity: 100 }),
+      ]),
+      fundHoldings: expect.arrayContaining([
+        expect.objectContaining({ name: '纳指100', theme: '海外科技', amount: 33910 }),
+        expect.objectContaining({ name: '通信设备', theme: '通信设备 / CPO', amount: 21137 }),
+      ]),
+      themeExposures: expect.arrayContaining([
+        expect.objectContaining({ theme: '海外科技', source: 'fund' }),
+        expect.objectContaining({ theme: '机器人 / 物理 AI', source: 'stock' }),
+      ]),
+    }));
+    expect(context).toMatchObject({
+      owner: 'Ricki',
+      stockAccount: {
+        positions: expect.arrayContaining([
+          expect.objectContaining({ symbol: '600366' }),
+        ]),
+      },
+    });
   });
 });
 
@@ -147,5 +186,6 @@ function createRepository(): PortfolioContextRepository {
         },
       ],
     }),
+    upsertPrimaryContext: jest.fn(async (input) => input),
   };
 }

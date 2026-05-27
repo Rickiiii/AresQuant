@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Post } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ok, type ApiResponse } from '@/common/types/api-response';
 import { PortfolioContextService } from '../application/portfolio-context.service';
@@ -14,5 +14,12 @@ export class PortfolioController {
   @ApiOkResponse({ type: PortfolioContextDto })
   async context(): Promise<ApiResponse<PortfolioContextDto | null>> {
     return ok(await this.portfolioContextService.getContext('Ricki'));
+  }
+
+  @Post('context/seed-ricki')
+  @ApiOperation({ summary: 'Seed Ricki portfolio context with the current fallback holdings and exposures' })
+  @ApiOkResponse({ type: PortfolioContextDto })
+  async seedRickiContext(): Promise<ApiResponse<PortfolioContextDto>> {
+    return ok(await this.portfolioContextService.seedRickiContext());
   }
 }

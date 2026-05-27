@@ -264,7 +264,7 @@ Research Center
 
 **目标：** 让系统知道 Ricki 的真实持仓和基金暴露，所有建议围绕持仓展开。
 
-**当前状态：** Phase 10 Step 1 已实现基础数据库模型、`PortfolioModule`、`GET /portfolio/context` 和 Research Center 优先读取 Portfolio Context 的集成。第一版只做只读上下文和暴露分析，不做交易、不做自动调仓。
+**当前状态：** Phase 10 Step 1 已实现基础数据库模型、`PortfolioModule`、`GET /portfolio/context` 和 Research Center 优先读取 Portfolio Context 的集成。Phase 10 Step 2 已加入 `POST /portfolio/context/seed-ricki`，可将当前 Ricki 持仓、基金暴露、主题矩阵和观察池种子数据幂等写入 Portfolio 表。第一版只做上下文和暴露分析，不做交易、不做自动调仓。
 
 ### 10.1 持仓模型
 

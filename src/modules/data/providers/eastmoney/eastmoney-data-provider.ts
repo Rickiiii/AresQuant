@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Exchange } from '@prisma/client';
 import type { DataProvider } from '../data-provider.interface';
 import type {
@@ -16,6 +16,7 @@ type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 const EASTMONEY_REQUEST_TIMEOUT_MS = 8000;
 const EASTMONEY_MAX_ATTEMPTS = 2;
+export const EASTMONEY_FETCHER = Symbol('EASTMONEY_FETCHER');
 
 type EastmoneyStockRow = {
   readonly f12?: string;
@@ -63,8 +64,11 @@ export class EastmoneyDataProvider implements DataProvider {
   private readonly baseListUrl = 'https://push2.eastmoney.com/api/qt/clist/get';
   private readonly baseKlineUrl = 'https://push2his.eastmoney.com/api/qt/stock/kline/get';
   private readonly baseSnapshotUrl = 'https://push2.eastmoney.com/api/qt/clist/get';
+  private readonly fetcher: FetchLike;
 
-  constructor(private readonly fetcher: FetchLike = fetch) {}
+  constructor(@Optional() @Inject(EASTMONEY_FETCHER) fetcher?: FetchLike) {
+    this.fetcher = fetcher ?? fetch;
+  }
 
   async getStocks(): Promise<readonly StockRawData[]> {
     const payload = await this.getJson<EastmoneyListPayload>(this.buildStockListUrl());

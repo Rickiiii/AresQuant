@@ -81,6 +81,7 @@ CREATE TABLE "watchlist_items" (
 );
 
 CREATE INDEX "portfolio_accounts_owner_is_primary_idx" ON "portfolio_accounts"("owner", "is_primary");
+CREATE UNIQUE INDEX "portfolio_accounts_owner_name_key" ON "portfolio_accounts"("owner", "name");
 CREATE UNIQUE INDEX "portfolio_holdings_account_id_symbol_key" ON "portfolio_holdings"("account_id", "symbol");
 CREATE INDEX "portfolio_holdings_symbol_idx" ON "portfolio_holdings"("symbol");
 CREATE INDEX "portfolio_holdings_account_id_action_bias_idx" ON "portfolio_holdings"("account_id", "action_bias");
