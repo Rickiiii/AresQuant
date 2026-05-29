@@ -137,4 +137,37 @@ describe('ResearchController', () => {
       impactLevel: 'high',
     });
   });
+
+  it('saves and lists research journal entries', async () => {
+    const listJournalEntries = jest.fn().mockResolvedValue([{ id: 'journal-1', title: '盘中复盘' }]);
+    const saveJournalEntry = jest.fn().mockResolvedValue({ id: 'journal-1', title: '盘中复盘' });
+    const moduleRef = await Test.createTestingModule({
+      controllers: [ResearchController],
+      providers: [
+        {
+          provide: ResearchService,
+          useValue: {
+            listJournalEntries,
+            saveJournalEntry,
+          },
+        },
+      ],
+    }).compile();
+    const controller = moduleRef.get(ResearchController);
+
+    await expect(controller.journal()).resolves.toMatchObject({
+      success: true,
+      data: [{ id: 'journal-1', title: '盘中复盘' }],
+    });
+    await expect(controller.saveJournal({
+      noteDate: '2026-05-29',
+      title: '盘中复盘',
+      topConclusion: '继续观察。',
+    })).resolves.toMatchObject({
+      success: true,
+      data: { id: 'journal-1', title: '盘中复盘' },
+    });
+    expect(listJournalEntries).toHaveBeenCalledWith('Ricki');
+    expect(saveJournalEntry).toHaveBeenCalledWith(expect.objectContaining({ title: '盘中复盘' }), 'Ricki');
+  });
 });

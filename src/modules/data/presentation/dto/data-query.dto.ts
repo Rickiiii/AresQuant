@@ -51,6 +51,14 @@ export class SyncDailyBarsRequestDto extends DateRangeQueryDto {
 
 export class SyncAllRequestDto extends DateRangeQueryDto {}
 
+export class SyncCoreRequestDto extends DateRangeQueryDto {
+  @ApiPropertyOptional({ example: ['000001', '600519', '000333'], type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  readonly symbols?: readonly string[];
+}
+
 export class QualityCheckRequestDto extends DateRangeQueryDto {
   @ApiProperty({ example: '000001' })
   @IsString()

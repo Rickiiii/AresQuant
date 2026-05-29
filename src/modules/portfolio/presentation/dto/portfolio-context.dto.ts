@@ -1,4 +1,7 @@
+import { IsIn, IsNumber, IsOptional, IsString, Matches, Min } from 'class-validator';
 import type { PortfolioAction } from '../../domain/portfolio.types';
+
+const PORTFOLIO_ACTIONS = ['hold', 'add', 'build', 'watch', 'take_profit', 'risk_control'] as const;
 
 export class PortfolioStockPositionDto {
   readonly symbol!: string;
@@ -12,6 +15,68 @@ export class PortfolioStockPositionDto {
   readonly themeTags!: readonly string[];
   readonly thesis!: string;
   readonly actionBias!: PortfolioAction;
+}
+
+export class UpsertPortfolioStockHoldingDto {
+  @IsString()
+  @Matches(/^[0-9]{6}$/)
+  readonly symbol!: string;
+
+  @IsString()
+  readonly name!: string;
+
+  @IsNumber()
+  @Min(0)
+  readonly quantity!: number;
+
+  @IsNumber()
+  @Min(0)
+  readonly costPrice!: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  readonly latestPrice?: number | null;
+
+  @IsString()
+  readonly theme!: string;
+
+  @IsOptional()
+  @IsString({ each: true })
+  readonly themeTags?: readonly string[];
+
+  @IsOptional()
+  @IsString()
+  readonly thesis?: string;
+
+  @IsOptional()
+  @IsIn(PORTFOLIO_ACTIONS)
+  readonly actionBias?: PortfolioAction;
+}
+
+export class UpsertPortfolioFundHoldingDto {
+  @IsOptional()
+  @IsString()
+  readonly fundCode?: string | null;
+
+  @IsString()
+  readonly name!: string;
+
+  @IsString()
+  readonly theme!: string;
+
+  @IsNumber()
+  @Min(0)
+  readonly amount!: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  readonly weightPercent?: number;
+
+  @IsOptional()
+  @IsIn(PORTFOLIO_ACTIONS)
+  readonly actionBias?: PortfolioAction;
 }
 
 export class PortfolioFundExposureDto {

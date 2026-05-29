@@ -438,6 +438,23 @@ model WatchlistItem {
   @@map("watchlist_items")
 }
 
+model ResearchJournalEntry {
+  id                    String   @id @default(uuid()) @db.Uuid
+  owner                 String   @default("Ricki") @db.VarChar(64)
+  noteDate              DateTime @map("note_date") @db.Date
+  title                 String   @db.VarChar(160)
+  topConclusion         String   @map("top_conclusion") @db.Text
+  actionItems           Json     @default("[]") @map("action_items")
+  disconfirmingEvidence Json     @default("[]") @map("disconfirming_evidence")
+  nextFocus             Json     @default("[]") @map("next_focus")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([owner, noteDate, title])
+  @@index([owner, noteDate])
+  @@map("research_journal_entries")
+}
+
 model MinuteBar {
   id          String       @id @default(uuid()) @db.Uuid
   securityId  String       @map("security_id") @db.Uuid

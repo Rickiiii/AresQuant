@@ -41,6 +41,7 @@ import {
   type TradingCalendarRepository,
 } from '../../data/domain/repositories/data-center.repositories';
 import type { StockRawData } from '../../data/domain/types/market-data.types';
+import { DataSyncService } from '../../data/application/services/data-sync.service';
 import { StrategyService } from '../../strategy/application/strategy.service';
 import type { Strategy, StrategyConfig, StrategyContext } from '../../strategy/domain/strategy.types';
 import type {
@@ -84,16 +85,18 @@ export class DashboardService {
     @Inject(BACKTEST_TRADE_REPOSITORY) private readonly tradeRepository: Pick<BacktestTradeRepository, 'findByTaskId'>,
     @Inject(BACKTEST_METRIC_REPOSITORY) private readonly metricRepository: Pick<BacktestMetricRepository, 'findByTaskId'>,
     private readonly strategyService: StrategyService,
+    private readonly dataSyncService: DataSyncService,
   ) {}
 
   async getOverview(): Promise<DashboardOverviewDto> {
-    const [stockCount, dailyBarCount, latestDailyBarDate, financialFactorCount, latestFinancialFactorDate, tasks] = await Promise.all([
+    const [stockCount, dailyBarCount, latestDailyBarDate, financialFactorCount, latestFinancialFactorDate, tasks, syncHealth] = await Promise.all([
       this.stockRepository.count(),
       this.dailyBarRepository.count(),
       this.dailyBarRepository.findLatestDate(),
       this.financialFactorRepository.count(),
       this.financialFactorRepository.findLatestDate(),
       this.taskRepository.findAll(),
+      this.dataSyncService.getSyncHealth(),
     ]);
     const strategies = this.strategyService.list();
 
@@ -104,6 +107,7 @@ export class DashboardService {
         latestDailyBarDate,
         financialFactorCount,
         latestFinancialFactorDate,
+        syncHealth,
       },
       strategies: {
         total: strategies.length,

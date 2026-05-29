@@ -36,6 +36,35 @@ export interface EastmoneySmokeCheckResult {
   readonly checks: readonly EastmoneySmokeCheckItem[];
 }
 
+export type DataSyncHealthStatus = 'healthy' | 'stale' | 'empty' | 'failed';
+
+export interface DataSyncDatasetHealth {
+  readonly dataSet: string;
+  readonly label: string;
+  readonly status: DataSyncHealthStatus;
+  readonly total: number;
+  readonly latestDate: string | null;
+  readonly errorMessage?: string;
+}
+
+export interface DataSyncHealthSummary {
+  readonly status: DataSyncHealthStatus;
+  readonly summary: string;
+  readonly asOfDate: string | null;
+  readonly staleDatasetCount: number;
+  readonly emptyDatasetCount: number;
+  readonly failedDatasetCount: number;
+  readonly datasets: readonly DataSyncDatasetHealth[];
+}
+
+interface CoverageRepository {
+  count(): Promise<number>;
+  findLatestDate(): Promise<string | null>;
+}
+
+const DEFAULT_CORE_SYNC_SYMBOLS = ['000001', '600519', '000333', '600000'] as const;
+const CORE_INDEX_CODES = ['000300.SH', '000905.SH'] as const;
+
 @Injectable()
 export class DataSyncService {
   private readonly logger = new Logger(DataSyncService.name);
@@ -127,6 +156,35 @@ export class DataSyncService {
     };
   }
 
+  async getSyncHealth(today = new Date()): Promise<DataSyncHealthSummary> {
+    const expectedMarketDate = latestPastWeekday(today);
+    const datasets = await Promise.all([
+      buildDatasetHealth('stocks', '股票池', this.stockRepository, expectedMarketDate, 3650),
+      buildDatasetHealth('tradingCalendar', '交易日历', this.tradingCalendarRepository, expectedMarketDate, 30),
+      buildDatasetHealth('dailyBars', '日线行情', this.dailyBarRepository, expectedMarketDate, 3),
+      buildDatasetHealth('indexDailyBars', '指数日线', this.indexDailyBarRepository, expectedMarketDate, 3),
+      buildDatasetHealth('limitPrices', '涨跌停价格', this.limitPriceRepository, expectedMarketDate, 3),
+      buildDatasetHealth('suspensions', '停复牌', this.suspensionRepository, expectedMarketDate, 3),
+      buildDatasetHealth('adjFactors', '复权因子', this.adjFactorRepository, expectedMarketDate, 7),
+      buildDatasetHealth('financialFactors', '财务因子', this.financialFactorRepository, expectedMarketDate, 180),
+    ]);
+    const failedDatasetCount = datasets.filter((item) => item.status === 'failed').length;
+    const emptyDatasetCount = datasets.filter((item) => item.status === 'empty').length;
+    const staleDatasetCount = datasets.filter((item) => item.status === 'stale').length;
+    const asOfDate = latestCompactDate(datasets.filter(isMarketDatasetHealth).map((item) => item.latestDate));
+    const status = resolveSyncHealthStatus({ failedDatasetCount, emptyDatasetCount, staleDatasetCount });
+
+    return {
+      status,
+      summary: syncHealthSummaryText(status),
+      asOfDate,
+      staleDatasetCount,
+      emptyDatasetCount,
+      failedDatasetCount,
+      datasets,
+    };
+  }
+
   async syncAll(startDate: string, endDate: string): Promise<readonly DataSyncResult[]> {
     const stockResult = await this.syncStocks();
     const stocks = await this.stockRepository.findAll();
@@ -139,6 +197,20 @@ export class DataSyncService {
     results.push(await this.syncSuspensions(startDate, endDate));
     results.push(await this.syncAdjFactors(symbols, startDate, endDate));
     results.push(await this.syncFinancialFactors(symbols));
+    return results;
+  }
+
+  async syncCore(startDate: string, endDate: string, symbols: readonly string[] = DEFAULT_CORE_SYNC_SYMBOLS): Promise<readonly DataSyncResult[]> {
+    const scopedSymbols = symbols.length > 0 ? symbols : DEFAULT_CORE_SYNC_SYMBOLS;
+    const results: DataSyncResult[] = [];
+    results.push(await this.syncStocks());
+    results.push(await this.syncTradingCalendar(startDate, endDate));
+    results.push(await this.syncDailyBars(scopedSymbols, startDate, endDate));
+    results.push(await this.syncIndexDailyBars(CORE_INDEX_CODES, startDate, endDate));
+    results.push(await this.syncLimitPrices(startDate, endDate));
+    results.push(await this.syncSuspensions(startDate, endDate));
+    results.push(await this.syncAdjFactors(scopedSymbols, startDate, endDate));
+    results.push(await this.syncFinancialFactors(scopedSymbols));
     return results;
   }
 
@@ -241,6 +313,84 @@ export class DataSyncService {
       return { taskName, dataType, status: 'FAILED', totalCount: 0, successCount: 0, failedCount: 1, errorMessage: message };
     }
   }
+}
+
+async function buildDatasetHealth(
+  dataSet: string,
+  label: string,
+  repository: CoverageRepository,
+  expectedMarketDate: string,
+  staleAfterDays: number,
+): Promise<DataSyncDatasetHealth> {
+  try {
+    const [total, latestDate] = await Promise.all([
+      repository.count(),
+      repository.findLatestDate(),
+    ]);
+    if (total <= 0 || latestDate === null) {
+      return { dataSet, label, status: 'empty', total, latestDate };
+    }
+    return {
+      dataSet,
+      label,
+      status: daysBetweenCompactDates(latestDate, expectedMarketDate) > staleAfterDays ? 'stale' : 'healthy',
+      total,
+      latestDate,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { dataSet, label, status: 'failed', total: 0, latestDate: null, errorMessage: message };
+  }
+}
+
+function resolveSyncHealthStatus(input: {
+  readonly failedDatasetCount: number;
+  readonly emptyDatasetCount: number;
+  readonly staleDatasetCount: number;
+}): DataSyncHealthStatus {
+  if (input.failedDatasetCount > 0) {
+    return 'failed';
+  }
+  if (input.emptyDatasetCount > 0) {
+    return 'empty';
+  }
+  if (input.staleDatasetCount > 0) {
+    return 'stale';
+  }
+  return 'healthy';
+}
+
+function syncHealthSummaryText(status: DataSyncHealthStatus): string {
+  switch (status) {
+    case 'healthy':
+      return '核心行情数据已同步，当前可用于工作台分析。';
+    case 'stale':
+      return '部分核心数据已经过期，建议先同步数据再做投研判断。';
+    case 'empty':
+      return '核心数据仍为空，请先执行数据同步。';
+    case 'failed':
+      return '读取数据同步状态失败，请检查数据库或同步任务。';
+  }
+}
+
+function latestCompactDate(dates: readonly (string | null)[]): string | null {
+  const validDates = dates.filter((date): date is string => date !== null);
+  if (validDates.length === 0) {
+    return null;
+  }
+  return validDates.toSorted().at(-1) ?? null;
+}
+
+function isMarketDatasetHealth(dataset: DataSyncDatasetHealth): boolean {
+  return ['dailyBars', 'indexDailyBars', 'limitPrices', 'suspensions', 'adjFactors'].includes(dataset.dataSet);
+}
+
+function daysBetweenCompactDates(left: string, right: string): number {
+  return Math.floor((parseCompactDate(right).getTime() - parseCompactDate(left).getTime()) / 86_400_000);
+}
+
+function parseCompactDate(value: string): Date {
+  return new Date(Date.UTC(Number(value.slice(0, 4)), Number(value.slice(4, 6)) - 1, Number(value.slice(6, 8))));
 }
 
 function normalizeDate(value: string): string {

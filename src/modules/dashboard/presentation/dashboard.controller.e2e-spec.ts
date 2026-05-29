@@ -45,6 +45,7 @@ import {
   type TradingCalendarRepository,
 } from '../../data/domain/repositories/data-center.repositories';
 import type { StockRawData } from '../../data/domain/types/market-data.types';
+import { DataSyncService } from '../../data/application/services/data-sync.service';
 import { StrategyService } from '../../strategy/application/strategy.service';
 import { EqualWeightStrategy } from '../../strategy/domain/strategies/equal-weight.strategy';
 import { DashboardController } from './dashboard.controller';
@@ -122,6 +123,20 @@ async function createController(): Promise<DashboardController> {
         provide: StrategyService,
         useValue: new StrategyService([new EqualWeightStrategy()]),
       },
+      {
+        provide: DataSyncService,
+        useValue: {
+          getSyncHealth: jest.fn().mockResolvedValue({
+            status: 'healthy',
+            summary: '核心行情数据已同步，当前可用于工作台分析。',
+            asOfDate: '20260514',
+            staleDatasetCount: 0,
+            emptyDatasetCount: 0,
+            failedDatasetCount: 0,
+            datasets: [],
+          }),
+        },
+      },
     ],
   }).compile();
 
@@ -142,6 +157,15 @@ describe('DashboardController', () => {
       latestDailyBarDate: '20260514',
       financialFactorCount: 8,
       latestFinancialFactorDate: '20260510',
+      syncHealth: {
+        status: 'healthy',
+        summary: '核心行情数据已同步，当前可用于工作台分析。',
+        asOfDate: '20260514',
+        staleDatasetCount: 0,
+        emptyDatasetCount: 0,
+        failedDatasetCount: 0,
+        datasets: [],
+      },
     });
   });
 

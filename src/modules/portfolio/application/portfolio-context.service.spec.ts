@@ -79,16 +79,20 @@ describe('PortfolioContextService', () => {
       stockHoldings: expect.arrayContaining([
         expect.objectContaining({ symbol: '600366', name: '宁波韵升', quantity: 800 }),
         expect.objectContaining({ symbol: '601689', name: '拓普集团', quantity: 200 }),
-        expect.objectContaining({ symbol: '002031', name: '巨轮智能', quantity: 1500 }),
+        expect.objectContaining({ symbol: '002031', name: '巨轮智能', quantity: 2100, costPrice: 8.1329 }),
         expect.objectContaining({ symbol: '002714', name: '牧原股份', quantity: 100 }),
+        expect.objectContaining({ symbol: '603005', name: '晶方科技', quantity: 200 }),
+        expect.objectContaining({ symbol: '560710', name: '船舶ETF', quantity: 6400 }),
+        expect.objectContaining({ symbol: '002050', name: '三花智控', quantity: 200 }),
       ]),
       fundHoldings: expect.arrayContaining([
-        expect.objectContaining({ name: '纳指100', theme: '海外科技', amount: 33910 }),
-        expect.objectContaining({ name: '通信设备', theme: '通信设备 / CPO', amount: 21137 }),
+        expect.objectContaining({ fundCode: 'NASDAQ100', name: '纳指100', theme: '美股科技/QDII', amount: 33910 }),
+        expect.objectContaining({ fundCode: 'COMMUNICATION', name: '通信设备', theme: '通信设备/光模块/AI算力链', amount: 21137 }),
+        expect.objectContaining({ fundCode: 'HSTECH', name: '恒生科技', theme: '港股科技/恒生科技', amount: 4307 }),
       ]),
       themeExposures: expect.arrayContaining([
-        expect.objectContaining({ theme: '海外科技', source: 'fund' }),
-        expect.objectContaining({ theme: '机器人 / 物理 AI', source: 'stock' }),
+        expect.objectContaining({ theme: '美股科技/QDII', source: 'fund' }),
+        expect.objectContaining({ theme: '机器人/物理AI', source: 'stock', amount: 40203.09 }),
       ]),
     }));
     expect(context).toMatchObject({
@@ -99,6 +103,81 @@ describe('PortfolioContextService', () => {
         ]),
       },
     });
+  });
+
+  it('upserts a stock holding and refreshes stock theme exposure', async () => {
+    const repository = createRepository();
+    const service = new PortfolioContextService(repository);
+
+    const context = await service.upsertStockHolding({
+      symbol: '300750',
+      name: '宁德时代',
+      quantity: 100,
+      costPrice: 180,
+      latestPrice: 188,
+      theme: '新能源 / 电池',
+      thesis: '新能源龙头观察仓。',
+      actionBias: 'build',
+    });
+
+    expect(repository.upsertPrimaryContext).toHaveBeenCalledWith(expect.objectContaining({
+      stockHoldings: expect.arrayContaining([
+        expect.objectContaining({
+          symbol: '300750',
+          name: '宁德时代',
+          marketValue: 18800,
+          unrealizedPnl: 800,
+          themeTags: ['新能源', '电池'],
+          actionBias: 'build',
+        }),
+      ]),
+      themeExposures: expect.arrayContaining([
+        expect.objectContaining({
+          theme: '新能源 / 电池',
+          source: 'stock',
+          amount: 18800,
+          actionBias: 'build',
+        }),
+      ]),
+    }));
+    expect(context.stockAccount.positions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ symbol: '300750', theme: '新能源 / 电池', actionBias: 'build' }),
+    ]));
+  });
+
+  it('upserts a fund holding and refreshes fund theme exposure', async () => {
+    const repository = createRepository();
+    const service = new PortfolioContextService(repository);
+
+    const context = await service.upsertFundHolding({
+      name: '半导体 ETF',
+      theme: '半导体',
+      amount: 12000,
+      actionBias: 'watch',
+    });
+
+    expect(repository.upsertPrimaryContext).toHaveBeenCalledWith(expect.objectContaining({
+      fundHoldings: expect.arrayContaining([
+        expect.objectContaining({
+          name: '半导体 ETF',
+          theme: '半导体',
+          amount: 12000,
+          weightPercent: 8.86,
+          actionBias: 'watch',
+        }),
+      ]),
+      themeExposures: expect.arrayContaining([
+        expect.objectContaining({
+          theme: '半导体',
+          source: 'fund',
+          amount: 12000,
+          weightPercent: 8.86,
+        }),
+      ]),
+    }));
+    expect(context.fundAccount.exposures).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: '半导体 ETF', theme: '半导体', amount: 12000 }),
+    ]));
   });
 });
 

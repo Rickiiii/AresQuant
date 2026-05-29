@@ -29,6 +29,8 @@ import type {
   SuspensionRepository,
   TradingCalendarRepository,
 } from '../../data/domain/repositories/data-center.repositories';
+import type { DataSyncHealthSummary } from '../../data/application/services/data-sync.service';
+import { DataSyncService } from '../../data/application/services/data-sync.service';
 import type { StockRawData } from '../../data/domain/types/market-data.types';
 import { StrategyService } from '../../strategy/application/strategy.service';
 import { EqualWeightStrategy } from '../../strategy/domain/strategies/equal-weight.strategy';
@@ -97,6 +99,9 @@ function createService(): DashboardServiceFixture {
   const metricRepository: Pick<BacktestMetricRepository, 'findByTaskId'> = {
     findByTaskId: jest.fn().mockResolvedValue(createMetrics()),
   };
+  const dataSyncService = {
+    getSyncHealth: jest.fn().mockResolvedValue(createSyncHealth()),
+  } as unknown as DataSyncService;
 
   return {
     taskRepository,
@@ -116,6 +121,7 @@ function createService(): DashboardServiceFixture {
       tradeRepository,
       metricRepository,
       new StrategyService([new EqualWeightStrategy()]),
+      dataSyncService,
     ),
   };
 }
@@ -132,6 +138,7 @@ describe('DashboardService', () => {
       latestDailyBarDate: '20260514',
       financialFactorCount: 32000,
       latestFinancialFactorDate: '20260510',
+      syncHealth: createSyncHealth(),
     });
     expect(overview.strategies).toEqual({
       total: 1,
@@ -375,6 +382,18 @@ function createBacktestTask(id: string, status: BacktestTaskStatus): BacktestTas
       priceMode: BacktestPriceMode.CLOSE,
       blacklist: [],
     },
+  };
+}
+
+function createSyncHealth(): DataSyncHealthSummary {
+  return {
+    status: 'healthy',
+    summary: '核心行情数据已同步，当前可用于工作台分析。',
+    asOfDate: '20260514',
+    staleDatasetCount: 0,
+    emptyDatasetCount: 0,
+    failedDatasetCount: 0,
+    datasets: [],
   };
 }
 

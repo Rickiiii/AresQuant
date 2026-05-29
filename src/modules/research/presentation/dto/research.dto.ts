@@ -1,3 +1,5 @@
+import { IsArray, IsDateString, IsOptional, IsString } from 'class-validator';
+
 export type ResearchAction = 'hold' | 'add' | 'build' | 'watch' | 'take_profit' | 'risk_control';
 export type ResearchSuggestedAction = 'add' | 'build' | 'watch' | 'take_profit' | 'risk_control';
 export type ResearchImpactLevel = 'low' | 'medium' | 'high';
@@ -31,6 +33,46 @@ export class ResearchDailyNoteDto {
   readonly actionBuckets!: ResearchActionBucketsDto;
   readonly disconfirmingEvidence!: readonly string[];
   readonly nextFocus!: readonly string[];
+}
+
+export class ResearchJournalEntryDto {
+  readonly id!: string;
+  readonly owner!: string;
+  readonly noteDate!: string;
+  readonly title!: string;
+  readonly topConclusion!: string;
+  readonly actionItems!: readonly string[];
+  readonly disconfirmingEvidence!: readonly string[];
+  readonly nextFocus!: readonly string[];
+  readonly createdAt!: string;
+  readonly updatedAt!: string;
+}
+
+export class SaveResearchJournalEntryDto {
+  @IsOptional()
+  @IsDateString()
+  readonly noteDate?: string;
+
+  @IsString()
+  readonly title!: string;
+
+  @IsString()
+  readonly topConclusion!: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  readonly actionItems?: readonly string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  readonly disconfirmingEvidence?: readonly string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  readonly nextFocus?: readonly string[];
 }
 
 export class ResearchPositioningDto {

@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ok, type ApiResponse } from '@/common/types/api-response';
 import { ResearchService } from '../application/research.service';
@@ -6,11 +6,13 @@ import {
   ResearchCatalystDto,
   ResearchDailyNoteDto,
   ResearchIdeaDto,
+  ResearchJournalEntryDto,
   ResearchPlaybookDto,
   ResearchPortfolioContextDto,
   ResearchPortfolioReviewDto,
   ResearchThemeExposureSummaryDto,
   ResearchThesisDto,
+  SaveResearchJournalEntryDto,
 } from './dto/research.dto';
 
 @ApiTags('research')
@@ -72,5 +74,20 @@ export class ResearchController {
   @ApiOkResponse({ type: [ResearchCatalystDto] })
   catalysts(): ApiResponse<readonly ResearchCatalystDto[]> {
     return ok(this.researchService.listCatalysts());
+  }
+
+  @Get('journal')
+  @ApiOperation({ summary: 'List saved research journal entries' })
+  @ApiOkResponse({ type: [ResearchJournalEntryDto] })
+  async journal(): Promise<ApiResponse<readonly ResearchJournalEntryDto[]>> {
+    return ok(await this.researchService.listJournalEntries('Ricki'));
+  }
+
+  @Post('journal')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Save or update a research journal entry' })
+  @ApiOkResponse({ type: ResearchJournalEntryDto })
+  async saveJournal(@Body() dto: SaveResearchJournalEntryDto): Promise<ApiResponse<ResearchJournalEntryDto>> {
+    return ok(await this.researchService.saveJournalEntry(dto, 'Ricki'));
   }
 }

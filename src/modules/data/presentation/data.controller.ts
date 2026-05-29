@@ -3,7 +3,7 @@ import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { ok, type ApiResponse } from '@/common/types/api-response';
 import { AdjustmentService } from '../application/services/adjustment.service';
 import { DataQualityService } from '../application/services/data-quality.service';
-import { DataSyncService, type EastmoneySmokeCheckResult } from '../application/services/data-sync.service';
+import { DataSyncService, type DataSyncHealthSummary, type EastmoneySmokeCheckResult } from '../application/services/data-sync.service';
 import {
   ADJ_FACTOR_REPOSITORY,
   FINANCIAL_FACTOR_REPOSITORY,
@@ -40,6 +40,7 @@ import {
   IndexBarsQueryDto,
   QualityCheckRequestDto,
   SyncAllRequestDto,
+  SyncCoreRequestDto,
   SyncDailyBarsRequestDto,
   TradeDateQueryDto,
 } from './dto/data-query.dto';
@@ -122,6 +123,11 @@ export class DataController {
     return ok(await this.dataSyncService.syncStocks());
   }
 
+  @Get('sync/health')
+  async getSyncHealth(): Promise<ApiResponse<DataSyncHealthSummary>> {
+    return ok(await this.dataSyncService.getSyncHealth());
+  }
+
   @Post('sync/daily-bars')
   @HttpCode(HttpStatus.OK)
   async syncDailyBars(@Body() dto: SyncDailyBarsRequestDto): Promise<ApiResponse<DataSyncResult>> {
@@ -132,6 +138,12 @@ export class DataController {
   @HttpCode(HttpStatus.OK)
   async syncAll(@Body() dto: SyncAllRequestDto): Promise<ApiResponse<readonly DataSyncResult[]>> {
     return ok(await this.dataSyncService.syncAll(normalizeDate(dto.startDate), normalizeDate(dto.endDate)));
+  }
+
+  @Post('sync/core')
+  @HttpCode(HttpStatus.OK)
+  async syncCore(@Body() dto: SyncCoreRequestDto): Promise<ApiResponse<readonly DataSyncResult[]>> {
+    return ok(await this.dataSyncService.syncCore(normalizeDate(dto.startDate), normalizeDate(dto.endDate), dto.symbols));
   }
 
   @Post('sync/eastmoney/smoke-check')

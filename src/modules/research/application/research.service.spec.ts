@@ -1,5 +1,6 @@
 import type { DashboardService } from '@/modules/dashboard/application/dashboard.service';
 import type { PortfolioContextService } from '@/modules/portfolio/application/portfolio-context.service';
+import type { PrismaService } from '@/database/prisma.service';
 import { ResearchService } from './research.service';
 
 describe('ResearchService', () => {
@@ -87,6 +88,34 @@ describe('ResearchService', () => {
     await expect(service.listThemeExposures()).resolves.toEqual([
       expect.objectContaining({ theme: '海外科技', source: 'fund', weightPercent: 23.93 }),
     ]);
+  });
+
+  it('saves and lists research journal entries through Prisma raw queries', async () => {
+    const prisma = createPrismaService();
+    const service = new ResearchService(undefined, undefined, prisma as unknown as PrismaService);
+
+    await expect(service.saveJournalEntry({
+      noteDate: '2026-05-29',
+      title: '盘中复盘',
+      topConclusion: '继续观察 AI 和机器人方向。',
+      actionItems: ['不追高', '等待回踩'],
+      disconfirmingEvidence: ['数据同步滞后'],
+      nextFocus: ['检查主题强弱'],
+    })).resolves.toMatchObject({
+      owner: 'Ricki',
+      noteDate: '2026-05-29',
+      title: '盘中复盘',
+      actionItems: ['不追高', '等待回踩'],
+    });
+
+    await expect(service.listJournalEntries()).resolves.toEqual([
+      expect.objectContaining({
+        id: 'journal-1',
+        title: '盘中复盘',
+        nextFocus: ['检查主题强弱'],
+      }),
+    ]);
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -220,4 +249,23 @@ function createPortfolioService(): PortfolioContextService {
       },
     }),
   } as unknown as PortfolioContextService;
+}
+
+function createPrismaService(): { $queryRaw: jest.Mock } {
+  return {
+    $queryRaw: jest.fn().mockResolvedValue([
+      {
+        id: 'journal-1',
+        owner: 'Ricki',
+        note_date: new Date('2026-05-29T00:00:00.000Z'),
+        title: '盘中复盘',
+        top_conclusion: '继续观察 AI 和机器人方向。',
+        action_items: ['不追高', '等待回踩'],
+        disconfirming_evidence: ['数据同步滞后'],
+        next_focus: ['检查主题强弱'],
+        created_at: new Date('2026-05-29T08:00:00.000Z'),
+        updated_at: new Date('2026-05-29T08:30:00.000Z'),
+      },
+    ]),
+  };
 }

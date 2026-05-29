@@ -1,6 +1,8 @@
 import { Injectable, Optional } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { DashboardService } from '@/modules/dashboard/application/dashboard.service';
 import { PortfolioContextService } from '@/modules/portfolio/application/portfolio-context.service';
+import { PrismaService } from '@/database/prisma.service';
 import type { PortfolioContextDto, PortfolioThemeExposureSummaryDto } from '@/modules/portfolio/presentation/dto/portfolio-context.dto';
 import type { DashboardBacktestListItemDto } from '@/modules/dashboard/presentation/dto/dashboard-backtest.dto';
 import type { DashboardDataCenterSummaryDto } from '@/modules/dashboard/presentation/dto/dashboard-data-center.dto';
@@ -10,11 +12,13 @@ import type {
   ResearchCatalystDto,
   ResearchDailyNoteDto,
   ResearchIdeaDto,
+  ResearchJournalEntryDto,
   ResearchPlaybookDto,
   ResearchPortfolioContextDto,
   ResearchPortfolioReviewDto,
   ResearchThemeExposureSummaryDto,
   ResearchThesisDto,
+  SaveResearchJournalEntryDto,
 } from '../presentation/dto/research.dto';
 
 @Injectable()
@@ -22,6 +26,7 @@ export class ResearchService {
   constructor(
     @Optional() private readonly dashboardService?: DashboardService,
     @Optional() private readonly portfolioContextService?: PortfolioContextService,
+    @Optional() private readonly prisma?: PrismaService,
   ) {}
 
   listPlaybooks(): readonly ResearchPlaybookDto[] {
@@ -76,6 +81,63 @@ export class ResearchService {
     return CATALYSTS;
   }
 
+  async listJournalEntries(owner = 'Ricki'): Promise<readonly ResearchJournalEntryDto[]> {
+    if (this.prisma === undefined) {
+      return [];
+    }
+    const rows = await this.prisma.$queryRaw<ResearchJournalEntryRow[]>(Prisma.sql`
+      SELECT id::text, owner, note_date, title, top_conclusion, action_items, disconfirming_evidence, next_focus, created_at, updated_at
+      FROM research_journal_entries
+      WHERE owner = ${owner}
+      ORDER BY note_date DESC, updated_at DESC
+      LIMIT 20
+    `);
+    return rows.map(toResearchJournalEntryDto);
+  }
+
+  async saveJournalEntry(input: SaveResearchJournalEntryDto, owner = 'Ricki'): Promise<ResearchJournalEntryDto> {
+    if (this.prisma === undefined) {
+      return {
+        id: 'preview-entry',
+        owner,
+        noteDate: input.noteDate ?? new Date().toISOString().slice(0, 10),
+        title: input.title,
+        topConclusion: input.topConclusion,
+        actionItems: input.actionItems ?? [],
+        disconfirmingEvidence: input.disconfirmingEvidence ?? [],
+        nextFocus: input.nextFocus ?? [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    const noteDate = input.noteDate ?? new Date().toISOString().slice(0, 10);
+    const rows = await this.prisma.$queryRaw<ResearchJournalEntryRow[]>(Prisma.sql`
+      INSERT INTO research_journal_entries (owner, note_date, title, top_conclusion, action_items, disconfirming_evidence, next_focus)
+      VALUES (
+        ${owner},
+        ${noteDate}::date,
+        ${input.title},
+        ${input.topConclusion},
+        ${JSON.stringify(input.actionItems ?? [])}::jsonb,
+        ${JSON.stringify(input.disconfirmingEvidence ?? [])}::jsonb,
+        ${JSON.stringify(input.nextFocus ?? [])}::jsonb
+      )
+      ON CONFLICT (owner, note_date, title)
+      DO UPDATE SET
+        top_conclusion = EXCLUDED.top_conclusion,
+        action_items = EXCLUDED.action_items,
+        disconfirming_evidence = EXCLUDED.disconfirming_evidence,
+        next_focus = EXCLUDED.next_focus,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING id::text, owner, note_date, title, top_conclusion, action_items, disconfirming_evidence, next_focus, created_at, updated_at
+    `);
+    const entry = rows[0];
+    if (entry === undefined) {
+      throw new Error('Research journal entry was not saved');
+    }
+    return toResearchJournalEntryDto(entry);
+  }
+
   private async loadLiveContext(): Promise<ResearchLiveContext | null> {
     if (this.dashboardService === undefined) {
       return null;
@@ -112,6 +174,19 @@ export class ResearchService {
       return null;
     }
   }
+}
+
+interface ResearchJournalEntryRow {
+  readonly id: string;
+  readonly owner: string;
+  readonly note_date: Date;
+  readonly title: string;
+  readonly top_conclusion: string;
+  readonly action_items: unknown;
+  readonly disconfirming_evidence: unknown;
+  readonly next_focus: unknown;
+  readonly created_at: Date;
+  readonly updated_at: Date;
 }
 
 interface ResearchLiveContext {
@@ -315,6 +390,29 @@ function toResearchThemeExposure(exposure: PortfolioThemeExposureSummaryDto): Re
     riskNote: exposure.riskNote,
     nextStep: exposure.nextStep,
   };
+}
+
+function toResearchJournalEntryDto(row: ResearchJournalEntryRow): ResearchJournalEntryDto {
+  return {
+    id: row.id,
+    owner: row.owner,
+    noteDate: toDateOnly(row.note_date),
+    title: row.title,
+    topConclusion: row.top_conclusion,
+    actionItems: asStringArray(row.action_items),
+    disconfirmingEvidence: asStringArray(row.disconfirming_evidence),
+    nextFocus: asStringArray(row.next_focus),
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  };
+}
+
+function asStringArray(value: unknown): readonly string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function toDateOnly(value: Date): string {
+  return value.toISOString().slice(0, 10);
 }
 
 const RESEARCH_PLAYBOOKS: readonly ResearchPlaybookDto[] = [

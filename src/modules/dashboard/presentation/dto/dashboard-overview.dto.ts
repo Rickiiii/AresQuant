@@ -1,6 +1,49 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { BacktestTaskStatus } from '@prisma/client';
 
+export class DashboardDataSyncDatasetHealthDto {
+  @ApiProperty({ example: 'dailyBars' })
+  readonly dataSet!: string;
+
+  @ApiProperty({ example: '日线行情' })
+  readonly label!: string;
+
+  @ApiProperty({ enum: ['healthy', 'stale', 'empty', 'failed'], example: 'healthy' })
+  readonly status!: 'healthy' | 'stale' | 'empty' | 'failed';
+
+  @ApiProperty({ example: 250000 })
+  readonly total!: number;
+
+  @ApiPropertyOptional({ example: '20260528', nullable: true })
+  readonly latestDate!: string | null;
+
+  @ApiPropertyOptional({ example: 'database timeout' })
+  readonly errorMessage?: string;
+}
+
+export class DashboardDataSyncHealthDto {
+  @ApiProperty({ enum: ['healthy', 'stale', 'empty', 'failed'], example: 'healthy' })
+  readonly status!: 'healthy' | 'stale' | 'empty' | 'failed';
+
+  @ApiProperty({ example: '核心行情数据已同步，当前可用于工作台分析。' })
+  readonly summary!: string;
+
+  @ApiPropertyOptional({ example: '20260528', nullable: true })
+  readonly asOfDate!: string | null;
+
+  @ApiProperty({ example: 0 })
+  readonly staleDatasetCount!: number;
+
+  @ApiProperty({ example: 0 })
+  readonly emptyDatasetCount!: number;
+
+  @ApiProperty({ example: 0 })
+  readonly failedDatasetCount!: number;
+
+  @ApiProperty({ type: [DashboardDataSyncDatasetHealthDto] })
+  readonly datasets!: readonly DashboardDataSyncDatasetHealthDto[];
+}
+
 export class DashboardDataCenterDto {
   @ApiProperty({ example: 5120 })
   readonly stockCount!: number;
@@ -16,6 +59,9 @@ export class DashboardDataCenterDto {
 
   @ApiPropertyOptional({ example: '20260510', nullable: true })
   readonly latestFinancialFactorDate!: string | null;
+
+  @ApiProperty({ type: DashboardDataSyncHealthDto })
+  readonly syncHealth!: DashboardDataSyncHealthDto;
 }
 
 export class DashboardStrategiesDto {
