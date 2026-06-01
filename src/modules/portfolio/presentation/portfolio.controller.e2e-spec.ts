@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
-<<<<<<< HEAD
 import { PortfolioContextService } from '../application/portfolio-context.service';
+import { PortfolioService } from '../application/portfolio.service';
 import { PORTFOLIO_CONTEXT_REPOSITORY } from '../domain/portfolio.repositories';
 import { PortfolioController } from './portfolio.controller';
 
@@ -10,6 +10,7 @@ describe('PortfolioController', () => {
       controllers: [PortfolioController],
       providers: [
         PortfolioContextService,
+        PortfolioService,
         {
           provide: PORTFOLIO_CONTEXT_REPOSITORY,
           useValue: {
@@ -30,34 +31,13 @@ describe('PortfolioController', () => {
               watchlistItems: [],
             }),
             upsertPrimaryContext: jest.fn(async (input) => input),
-=======
-import { PortfolioService } from '../application/portfolio.service';
-import { PortfolioController } from './portfolio.controller';
-
-describe('PortfolioController', () => {
-  async function createController(): Promise<PortfolioController> {
-    const moduleRef = await Test.createTestingModule({
-      controllers: [PortfolioController],
-      providers: [
-        {
-          provide: PortfolioService,
-          useValue: {
-            getContext: jest.fn().mockResolvedValue({ owner: 'Ricki', source: 'fallback' }),
-            listPositions: jest.fn().mockResolvedValue([{ symbol: '600366', name: '宁波韵升' }]),
-            listFundExposures: jest.fn().mockResolvedValue([{ name: '纳指100', theme: '海外科技' }]),
-            getTradingDecision: jest.fn().mockResolvedValue({
-              marketRegime: { code: 'weak_defensive', label: '弱势防守' },
-              decisions: [{ symbol: '603005', action: 'risk_control' }],
-            }),
->>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
           },
         },
       ],
     }).compile();
-<<<<<<< HEAD
     const controller = moduleRef.get(PortfolioController);
 
-    await expect(controller.context()).resolves.toMatchObject({
+    await expect(controller.editableContext()).resolves.toMatchObject({
       success: true,
       data: {
         owner: 'Ricki',
@@ -75,6 +55,7 @@ describe('PortfolioController', () => {
       controllers: [PortfolioController],
       providers: [
         PortfolioContextService,
+        PortfolioService,
         {
           provide: PORTFOLIO_CONTEXT_REPOSITORY,
           useValue: {
@@ -118,6 +99,7 @@ describe('PortfolioController', () => {
             upsertStockHolding,
           },
         },
+        { provide: PortfolioService, useValue: { getContext: jest.fn(), listPositions: jest.fn(), listFundExposures: jest.fn(), getTradingDecision: jest.fn() } },
       ],
     }).compile();
     const controller = moduleRef.get(PortfolioController);
@@ -146,6 +128,7 @@ describe('PortfolioController', () => {
             upsertFundHolding,
           },
         },
+        { provide: PortfolioService, useValue: { getContext: jest.fn(), listPositions: jest.fn(), listFundExposures: jest.fn(), getTradingDecision: jest.fn() } },
       ],
     }).compile();
     const controller = moduleRef.get(PortfolioController);
@@ -159,48 +142,5 @@ describe('PortfolioController', () => {
       data: { owner: 'Ricki' },
     });
     expect(upsertFundHolding).toHaveBeenCalledWith(expect.objectContaining({ name: '半导体 ETF' }), 'Ricki');
-=======
-
-    return moduleRef.get(PortfolioController);
-  }
-
-  it('returns portfolio context response', async () => {
-    const controller = await createController();
-
-    const response = await controller.context();
-
-    expect(response.success).toBe(true);
-    expect(response.data).toEqual({ owner: 'Ricki', source: 'fallback' });
-  });
-
-  it('returns portfolio positions response', async () => {
-    const controller = await createController();
-
-    const response = await controller.positions();
-
-    expect(response.success).toBe(true);
-    expect(response.data).toEqual([{ symbol: '600366', name: '宁波韵升' }]);
-  });
-
-  it('returns portfolio fund exposures response', async () => {
-    const controller = await createController();
-
-    const response = await controller.fundExposures();
-
-    expect(response.success).toBe(true);
-    expect(response.data).toEqual([{ name: '纳指100', theme: '海外科技' }]);
-  });
-
-  it('returns realtime trading decision response', async () => {
-    const controller = await createController();
-
-    const response = await controller.tradingDecision();
-
-    expect(response.success).toBe(true);
-    expect(response.data).toEqual({
-      marketRegime: { code: 'weak_defensive', label: '弱势防守' },
-      decisions: [{ symbol: '603005', action: 'risk_control' }],
-    });
->>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
   });
 });

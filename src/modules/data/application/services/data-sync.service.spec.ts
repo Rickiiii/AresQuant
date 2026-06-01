@@ -156,6 +156,8 @@ describe('DataSyncService', () => {
       getSuspensions: jest.fn().mockResolvedValue([]),
       getAdjFactors: jest.fn().mockResolvedValue([{ symbol: '000001', tradeDate: '20260528' }]),
       getFinancialFactors: jest.fn().mockResolvedValue([{ symbol: '000001', reportDate: '20260331', annDate: '20260430' }]),
+      getStockQuotes: jest.fn().mockResolvedValue([]),
+      getMarketSnapshots: jest.fn().mockResolvedValue([]),
     };
     const stockRepository = repositoryWithUpsert<StockRepository>(1);
     const tradingCalendarRepository = repositoryWithUpsert<TradingCalendarRepository>(1);
@@ -202,6 +204,8 @@ function emptyProvider(): DataProvider {
     getSuspensions: jest.fn(),
     getAdjFactors: jest.fn(),
     getFinancialFactors: jest.fn(),
+    getStockQuotes: jest.fn(),
+    getMarketSnapshots: jest.fn(),
   };
 }
 

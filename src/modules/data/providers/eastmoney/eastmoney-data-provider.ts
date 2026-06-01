@@ -9,8 +9,8 @@ import type {
   LimitPriceRawData,
   MarketSnapshotRawData,
   MarketSnapshotRequest,
-  StockQuoteRawData,
   StockRawData,
+  StockQuoteRawData,
   SuspensionRawData,
   TradingCalendarRawData,
 } from '../../domain/types/market-data.types';
@@ -85,11 +85,8 @@ export class EastmoneyDataProvider implements DataProvider {
   private readonly baseListUrl = 'https://push2.eastmoney.com/api/qt/clist/get';
   private readonly baseKlineUrl = 'https://push2his.eastmoney.com/api/qt/stock/kline/get';
   private readonly baseSnapshotUrl = 'https://push2.eastmoney.com/api/qt/clist/get';
-<<<<<<< HEAD
-  private readonly fetcher: FetchLike;
-=======
   private readonly baseQuoteUrl = 'https://push2.eastmoney.com/api/qt/ulist.np/get';
->>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
+  private readonly fetcher: FetchLike;
 
   constructor(@Optional() @Inject(EASTMONEY_FETCHER) fetcher?: FetchLike) {
     this.fetcher = fetcher ?? fetch;
