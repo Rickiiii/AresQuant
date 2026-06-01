@@ -1,4 +1,6 @@
 import { Test } from '@nestjs/testing';
+import { PortfolioService } from '@/modules/portfolio/application/portfolio.service';
+import { fallbackPortfolioContext } from '@/modules/portfolio/application/fallback-portfolio-context';
 import { ResearchService } from '../application/research.service';
 import { ResearchController } from './research.controller';
 
@@ -6,7 +8,15 @@ describe('ResearchController', () => {
   async function createController(): Promise<ResearchController> {
     const moduleRef = await Test.createTestingModule({
       controllers: [ResearchController],
-      providers: [ResearchService],
+      providers: [
+        ResearchService,
+        {
+          provide: PortfolioService,
+          useValue: {
+            getContext: jest.fn().mockResolvedValue(fallbackPortfolioContext),
+          },
+        },
+      ],
     }).compile();
 
     return moduleRef.get(ResearchController);
@@ -27,22 +37,32 @@ describe('ResearchController', () => {
     ]));
   });
 
-  it('returns a structured daily note fallback for the research center', async () => {
+  it('returns a portfolio-aware daily note calibrated to Ricki known holdings', async () => {
     const controller = await createController();
 
     const response = await controller.dailyNote();
 
     expect(response.success).toBe(true);
     expect(response.data).toMatchObject({
-      title: expect.stringContaining('AresQuant'),
+      title: expect.stringContaining('Portfolio-aware'),
       marketState: 'fallback',
-      topConclusion: expect.stringContaining('观望'),
+      topConclusion: expect.stringContaining('个股约29.9%'),
+      portfolioCalibration: {
+        stockCostValue: 57765.19,
+        visibleFundValue: 135386,
+        knownPortfolioValue: 193151.19,
+        stockWeightPercent: 29.91,
+        fundWeightPercent: 70.09,
+        highestFundTheme: '海外科技',
+        highestFundWeightPercent: 23.93,
+      },
       actionBuckets: {
+        hold: expect.arrayContaining(['黄金 / 避险', '纳指100 / 海外科技', '核心机器人链股票继续按 thesis 持有']),
         add: expect.any(Array),
-        build: expect.any(Array),
-        watch: expect.any(Array),
+        build: expect.arrayContaining(['AI ETF 或机器人 ETF 仅在回踩不破时小仓分批']),
+        watch: expect.arrayContaining(['通信设备 / CPO', 'AI / 人工智能', '中证1000 / 小盘风格']),
         takeProfit: expect.any(Array),
-        riskControl: expect.any(Array),
+        riskControl: expect.arrayContaining(['绿电 / 新能源暂不加仓', '巨轮智能等高弹性机器人股用趋势破位做风控']),
       },
     });
     expect(response.data.sections.map((section) => section.code)).toEqual([
@@ -53,6 +73,12 @@ describe('ResearchController', () => {
       'action-plan',
       'disconfirming-evidence',
     ]);
+    const portfolioCheck = response.data.sections.find((section) => section.code === 'portfolio-check');
+    expect(portfolioCheck?.bullets).toEqual(expect.arrayContaining([
+      expect.stringContaining('股票成本约57,765元'),
+      expect.stringContaining('基金仍是主仓'),
+      expect.stringContaining('个股不是3.3%'),
+    ]));
   });
 
   it('returns Ricki portfolio context with stock positions, fund exposures and action policy', async () => {
@@ -69,8 +95,9 @@ describe('ResearchController', () => {
         positions: expect.arrayContaining([
           expect.objectContaining({ symbol: '600366', quantity: 800, costPrice: 13.47 }),
           expect.objectContaining({ symbol: '601689', quantity: 200, costPrice: 69.62 }),
-          expect.objectContaining({ symbol: '002031', quantity: 1500, costPrice: 8.37 }),
+          expect.objectContaining({ symbol: '002031', quantity: 2100, costPrice: 8.1329 }),
           expect.objectContaining({ symbol: '002714', quantity: 100, costPrice: 44.67 }),
+          expect.objectContaining({ symbol: '603005', quantity: 300, costPrice: 38.397 }),
         ]),
       },
       fundAccount: {

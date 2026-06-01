@@ -18,6 +18,7 @@ export class ResearchNoteSectionDto {
 }
 
 export class ResearchActionBucketsDto {
+  readonly hold!: readonly string[];
   readonly add!: readonly string[];
   readonly build!: readonly string[];
   readonly watch!: readonly string[];
@@ -25,10 +26,33 @@ export class ResearchActionBucketsDto {
   readonly riskControl!: readonly string[];
 }
 
+export class ResearchMarketSnapshotDto {
+  readonly code!: string;
+  readonly name!: string;
+  readonly category!: 'index' | 'theme';
+  readonly latestPrice!: number;
+  readonly dailyChange!: number;
+  readonly dailyPctChange!: number;
+  readonly amount!: number;
+  readonly quoteSource!: string;
+}
+
+export class ResearchPortfolioCalibrationDto {
+  readonly stockCostValue!: number;
+  readonly visibleFundValue!: number;
+  readonly knownPortfolioValue!: number;
+  readonly stockWeightPercent!: number;
+  readonly fundWeightPercent!: number;
+  readonly highestFundTheme!: string;
+  readonly highestFundWeightPercent!: number;
+}
+
 export class ResearchDailyNoteDto {
   readonly title!: string;
   readonly marketState!: 'fallback' | 'live';
   readonly topConclusion!: string;
+  readonly portfolioCalibration!: ResearchPortfolioCalibrationDto;
+  readonly marketSnapshots!: readonly ResearchMarketSnapshotDto[];
   readonly sections!: readonly ResearchNoteSectionDto[];
   readonly actionBuckets!: ResearchActionBucketsDto;
   readonly disconfirmingEvidence!: readonly string[];

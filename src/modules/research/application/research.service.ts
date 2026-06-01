@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { DashboardService } from '@/modules/dashboard/application/dashboard.service';
@@ -8,14 +9,31 @@ import type { DashboardBacktestListItemDto } from '@/modules/dashboard/presentat
 import type { DashboardDataCenterSummaryDto } from '@/modules/dashboard/presentation/dto/dashboard-data-center.dto';
 import type { DashboardOverviewDto } from '@/modules/dashboard/presentation/dto/dashboard-overview.dto';
 import type { DashboardStrategySignalSampleDto } from '@/modules/dashboard/presentation/dto/dashboard-strategy.dto';
+=======
+import { Injectable } from '@nestjs/common';
+import { PortfolioService } from '@/modules/portfolio/application/portfolio.service';
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
 import type {
+  PortfolioContextDto,
+  PortfolioFundExposureDto,
+  PortfolioMarketSnapshotDto,
+  PortfolioPositionDto,
+} from '@/modules/portfolio/presentation/dto/portfolio.dto';
+import type {
+  ResearchAction,
   ResearchCatalystDto,
   ResearchDailyNoteDto,
+  ResearchFundExposureDto,
   ResearchIdeaDto,
+<<<<<<< HEAD
   ResearchJournalEntryDto,
+=======
+  ResearchMarketSnapshotDto,
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
   ResearchPlaybookDto,
   ResearchPortfolioContextDto,
   ResearchPortfolioReviewDto,
+  ResearchStockPositionDto,
   ResearchThemeExposureSummaryDto,
   ResearchThesisDto,
   SaveResearchJournalEntryDto,
@@ -23,17 +41,22 @@ import type {
 
 @Injectable()
 export class ResearchService {
+<<<<<<< HEAD
   constructor(
     @Optional() private readonly dashboardService?: DashboardService,
     @Optional() private readonly portfolioContextService?: PortfolioContextService,
     @Optional() private readonly prisma?: PrismaService,
   ) {}
+=======
+  constructor(private readonly portfolioService: PortfolioService) {}
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
 
   listPlaybooks(): readonly ResearchPlaybookDto[] {
     return RESEARCH_PLAYBOOKS;
   }
 
   async getDailyNote(): Promise<ResearchDailyNoteDto> {
+<<<<<<< HEAD
     const liveContext = await this.loadLiveContext();
     if (liveContext === null) {
       return DAILY_NOTE;
@@ -63,6 +86,39 @@ export class ResearchService {
       return THEME_EXPOSURES;
     }
     return context.themeExposures.map(toResearchThemeExposure);
+=======
+    const context = await this.portfolioService.getContext();
+    return buildPortfolioAwareDailyNote(context);
+  }
+
+  async getPortfolioReview(): Promise<ResearchPortfolioReviewDto> {
+    const context = await this.portfolioService.getContext();
+    const stockCostValue = toNumber(context.summary.stockCostValue);
+    const visibleFundValue = toNumber(context.summary.visibleFundValue);
+    const topFundThemes = context.fundExposures.slice(0, 5).map((exposure) => exposure.name).join('、');
+
+    return {
+      positioning: {
+        stockExposure: `A 股股票成本约 ${formatWan(stockCostValue)} 万，个股权重约 ${context.summary.stockWeightPercent}%，机器人/物理 AI 与 AI 硬件方向需要一起看集中度。`,
+        fundExposure: `${topFundThemes}等暴露已结构化，基金可见资产约 ${formatWan(visibleFundValue)} 万。`,
+        cashLevel: context.account.cashValue === null ? '仍保留继续分批加仓空间' : `现金约 ${formatCurrency(toNumber(context.account.cashValue))} 元`,
+        overallRisk: context.riskFlags.some((flag) => flag.includes('集中') || flag.includes('高波动')) ? 'medium' : 'low',
+      },
+      themeExposures: buildReviewThemeExposures(context),
+      priorities: ['先控制高拥挤主题追高风险。', '再寻找强主题回踩后的分批建仓点。', '保留现金应对风格切换。'],
+      riskNotes: ['第一版为 Portfolio Context 驱动的静态分析，不构成买卖建议。', '真实建议必须继续接入行情、持仓成本和主题强弱后生成。'],
+    };
+  }
+
+  async getPortfolioContext(): Promise<ResearchPortfolioContextDto> {
+    const context = await this.portfolioService.getContext();
+    return mapPortfolioContextToResearchContext(context);
+  }
+
+  async listThemeExposures(): Promise<readonly ResearchThemeExposureSummaryDto[]> {
+    const context = await this.portfolioService.getContext();
+    return buildThemeExposureSummaries(context);
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
   }
 
   async listIdeas(): Promise<readonly ResearchIdeaDto[]> {
@@ -448,208 +504,430 @@ const RESEARCH_PLAYBOOKS: readonly ResearchPlaybookDto[] = [
   },
 ];
 
-const DAILY_NOTE: ResearchDailyNoteDto = {
-  title: 'AresQuant 盘中复盘 Fallback',
-  marketState: 'fallback',
-  topConclusion: '当前为 Research Center 第一版 fallback：默认建议观望为主，等待真实行情、持仓和因子信号接入后再给出更高置信度动作。',
-  sections: [
-    {
-      code: 'market-temperature',
-      title: '市场温度',
-      bullets: ['等待接入指数表现、成交额、涨跌家数和风格强弱。'],
-    },
-    {
-      code: 'theme-strength',
-      title: '主题强弱',
-      bullets: ['重点跟踪 AI、机器人、物理 AI、通信设备、大科技、黄金、中证1000、绿电和恒生科技。'],
-    },
-    {
-      code: 'portfolio-check',
-      title: '持仓检查',
-      bullets: ['第一版以 Ricki 当前股票/基金暴露为默认上下文，后续接入 Portfolio Context 后按真实仓位动态生成。'],
-    },
-    {
-      code: 'factor-signals',
-      title: '策略/因子信号',
-      bullets: ['后续接入 Momentum、Volatility、PE、PB、ROE、Turnover 等已有因子。'],
-    },
-    {
-      code: 'action-plan',
-      title: '操作建议',
-      bullets: ['没有真实行情确认前不主动追高；优先输出继续持有、分批加仓、观望、止盈和风控分类。'],
-    },
-    {
-      code: 'disconfirming-evidence',
-      title: '反证条件',
-      bullets: ['主题退潮、关键指数放量破位、持仓 thesis 被证伪或风险暴露过高时降低操作置信度。'],
-    },
-  ],
-  actionBuckets: {
-    add: [],
-    build: ['等待强主题回踩且持仓风险不升高时，再考虑分批建仓。'],
-    watch: ['AI / 机器人 / 物理 AI', '通信设备 / CPO', '黄金', '中证1000 / 小盘风格', '绿电'],
-    takeProfit: [],
-    riskControl: ['若主题冲高回落并跌破关键趋势，优先收缩高波动仓位。'],
-  },
-  disconfirmingEvidence: [
-    '指数和主线主题同步放量破位。',
-    '持仓方向的核心 thesis 出现反向证据。',
-    '组合主题暴露过度集中且缺少现金缓冲。',
-  ],
-  nextFocus: ['接入真实 Portfolio Context', '接入主题强弱数据', '接入上次复盘记录对照'],
-};
+function buildPortfolioAwareDailyNote(context: PortfolioContextDto): ResearchDailyNoteDto {
+  const stockCostValue = roundMoney(toNumber(context.summary.stockCostValue));
+  const visibleFundValue = roundMoney(toNumber(context.summary.visibleFundValue));
+  const knownPortfolioValue = roundMoney(toNumber(context.summary.knownPortfolioValue));
+  const stockWeightPercent = roundPercent(toNumber(context.summary.stockWeightPercent));
+  const fundWeightPercent = roundPercent(toNumber(context.summary.fundWeightPercent));
+  const highestFund = findHighestFundExposure(context.fundExposures);
+  const marketSnapshots = context.marketSnapshots.map(mapMarketSnapshotToResearchSnapshot);
+  const liveMarketSnapshots = marketSnapshots.filter((snapshot) => snapshot.quoteSource === 'eastmoney');
+  const hasLiveQuotes = context.positions.some((position) => position.quoteSource === 'eastmoney');
+  const hasLiveMarketSnapshots = liveMarketSnapshots.length > 0;
+  const hasLiveMarket = hasLiveQuotes || hasLiveMarketSnapshots;
+  const liveQuoteCount = context.positions.filter((position) => position.quoteSource === 'eastmoney').length;
+  const topMovedPosition = findTopMovedPosition(context.positions);
+  const topMovedIndex = findTopMovedMarketSnapshot(liveMarketSnapshots, 'index');
+  const strongestTheme = findStrongestThemeSnapshot(liveMarketSnapshots);
+  const weakestTheme = findWeakestThemeSnapshot(liveMarketSnapshots);
+  const watchThemeNames = context.watchThemes.map((theme) => theme.name);
+  const watchThemeText = watchThemeNames.length > 0 ? watchThemeNames.slice(0, 6).join('、') : 'AI、机器人、通信设备、黄金和绿电';
 
-const PORTFOLIO_REVIEW: ResearchPortfolioReviewDto = {
-  positioning: {
-    stockExposure: '半仓不到的 A 股股票账户上下文待接入',
-    fundExposure: '纳指100、通信设备、数字经济/大科技、黄金、中证1000、人工智能、绿电等暴露待结构化',
-    cashLevel: '仍保留继续分批加仓空间',
-    overallRisk: 'medium',
-  },
-  themeExposures: [
+  return {
+    title: 'AresQuant Portfolio-aware Daily Note',
+    marketState: hasLiveMarket ? 'live' : 'fallback',
+    topConclusion: hasLiveMarket
+      ? buildLiveTopConclusion(liveQuoteCount, context.positions.length, topMovedPosition, topMovedIndex, strongestTheme, stockWeightPercent)
+      : `当前已按 Ricki Portfolio Context 校准：基金仍是主仓，但个股约${stockWeightPercent.toFixed(1)}%并非 3.3%；机器人/物理 AI 个股已有一定弹性仓位，后续以持有、观察和回踩分批为主，不追高。`,
+    portfolioCalibration: {
+      stockCostValue,
+      visibleFundValue,
+      knownPortfolioValue,
+      stockWeightPercent,
+      fundWeightPercent,
+      highestFundTheme: highestFund.theme,
+      highestFundWeightPercent: toNumber(highestFund.weightPercent ?? '0'),
+    },
+    marketSnapshots,
+    sections: [
+      {
+        code: 'market-temperature',
+        title: '市场温度',
+        bullets: hasLiveMarket
+          ? buildMarketTemperatureBullets(liveQuoteCount, topMovedPosition, topMovedIndex)
+          : ['当前未接入实时市场温度时，默认不把单日热点当作加仓依据。', '后续接入指数涨跌、成交额和涨跌家数后，再动态提高或降低动作置信度。'],
+      },
+      {
+        code: 'theme-strength',
+        title: '主题强弱',
+        bullets: hasLiveMarketSnapshots
+          ? buildThemeStrengthBullets(strongestTheme, weakestTheme, watchThemeText)
+          : [`重点观察${watchThemeText}。`, '科技成长暴露已不低，只有主线强且回踩质量好时才考虑继续分批。'],
+      },
+      {
+        code: 'portfolio-check',
+        title: '持仓检查',
+        bullets: [
+          `股票成本约${formatCurrency(stockCostValue)}元，个股不是3.3%，而是约${stockWeightPercent}%。`,
+          `基金仍是主仓，已知可见基金约${formatCurrency(visibleFundValue)}元，占已知组合约${fundWeightPercent}%。`,
+          `最大基金主题为${highestFund.theme}，占基金账户约${highestFund.weightPercent ?? '0'}%，与 A 股科技成长方向存在同向波动。`,
+        ],
+      },
+      {
+        code: 'factor-signals',
+        title: '策略/因子信号',
+        bullets: ['暂未接入实时因子时不主动加仓；后续用 Momentum、Volatility、估值和主题强度共同确认。'],
+      },
+      {
+        code: 'action-plan',
+        title: '操作建议',
+        bullets: ['核心仓位继续按 thesis 持有；AI/机器人 ETF 只在回踩不破时小仓分批。', '绿电、新能源和高弹性机器人股优先保留风控条件。'],
+      },
+      {
+        code: 'disconfirming-evidence',
+        title: '反证条件',
+        bullets: ['若 AI/机器人/通信设备同步退潮，停止追加同类科技仓。', '若高弹性个股跌破趋势且主题转弱，优先风控而不是摊平。'],
+      },
+    ],
+    actionBuckets: buildActionBuckets(context),
+    disconfirmingEvidence: [
+      '指数和主线主题同步放量破位。',
+      '个股实际权重继续抬升导致组合过度集中。',
+      '通信、AI、机器人和纳指科技共振回撤。',
+    ],
+    nextFocus: hasLiveMarketSnapshots
+      ? ['接入涨跌家数与成交额分位', '接入上次复盘记录对照', '接入主题趋势持续性评分']
+      : hasLiveQuotes
+        ? ['继续接入指数涨跌与成交额', '接入主题强弱数据', '接入上次复盘记录对照']
+        : ['接入实时价格计算股票市值权重', '接入主题强弱数据', '接入上次复盘记录对照'],
+  };
+}
+
+function mapMarketSnapshotToResearchSnapshot(snapshot: PortfolioMarketSnapshotDto): ResearchMarketSnapshotDto {
+  return {
+    code: snapshot.code,
+    name: snapshot.name,
+    category: snapshot.category,
+    latestPrice: toNumber(snapshot.latestPrice),
+    dailyChange: toNumber(snapshot.dailyChange),
+    dailyPctChange: toNumber(snapshot.dailyPctChange),
+    amount: toNumber(snapshot.amount),
+    quoteSource: snapshot.quoteSource,
+  };
+}
+
+function buildLiveTopConclusion(
+  liveQuoteCount: number,
+  positionCount: number,
+  topMovedPosition: PortfolioPositionDto | undefined,
+  topMovedIndex: ResearchMarketSnapshotDto | undefined,
+  strongestTheme: ResearchMarketSnapshotDto | undefined,
+  stockWeightPercent: number,
+): string {
+  const positionText = liveQuoteCount > 0
+    ? `当前 ${liveQuoteCount}/${positionCount} 只个股有实时价`
+    : '个股实时价暂未完全覆盖';
+  const indexText = topMovedIndex === undefined ? '指数温度待继续观察' : `${topMovedIndex.name}${formatSignedPercent(topMovedIndex.dailyPctChange)}`;
+  const themeText = strongestTheme === undefined ? '主题强弱待继续观察' : `主题侧先看${strongestTheme.name}${formatSignedPercent(strongestTheme.dailyPctChange)}`;
+  const positionMoveText = topMovedPosition === undefined
+    ? '组合个股整体波动'
+    : `${topMovedPosition.name}${formatSignedPercent(toNumber(topMovedPosition.dailyPctChange ?? '0'))}`;
+  return `已接入 Eastmoney 实时行情：${positionText}，${indexText}，${themeText}；今日先结合${positionMoveText}决定是否加仓。个股成本权重约${stockWeightPercent.toFixed(1)}%，仍以回踩确认和风控优先。`;
+}
+
+function buildMarketTemperatureBullets(
+  liveQuoteCount: number,
+  topMovedPosition: PortfolioPositionDto | undefined,
+  topMovedIndex: ResearchMarketSnapshotDto | undefined,
+): readonly string[] {
+  return [
+    topMovedIndex === undefined
+      ? '已接入实时市场快照，但指数样本暂未形成明确温度判断。'
+      : `指数温度锚点：${topMovedIndex.name}${formatSignedPercent(topMovedIndex.dailyPctChange)}，成交额约${formatYi(topMovedIndex.amount)}亿。`,
+    liveQuoteCount > 0
+      ? `已读取 ${liveQuoteCount} 只持仓实时价，继续用个股日内涨跌校准今日操作节奏。`
+      : '持仓实时价暂未覆盖时，先用指数和主题温度控制加仓节奏。',
+    topMovedPosition === undefined
+      ? '暂无明显领涨/领跌持仓，保持组合级观察。'
+      : `今日波动最大持仓：${topMovedPosition.name}${formatSignedPercent(toNumber(topMovedPosition.dailyPctChange ?? '0'))}。`,
+  ];
+}
+
+function buildThemeStrengthBullets(
+  strongestTheme: ResearchMarketSnapshotDto | undefined,
+  weakestTheme: ResearchMarketSnapshotDto | undefined,
+  watchThemeText: string,
+): readonly string[] {
+  return [
+    strongestTheme === undefined
+      ? `重点观察${watchThemeText}，等待主题 ETF 样本形成排序。`
+      : `今日主题相对强项：${strongestTheme.name}${formatSignedPercent(strongestTheme.dailyPctChange)}。`,
+    weakestTheme === undefined
+      ? '若主题样本不足，不把单个 ETF 波动当作主线确认。'
+      : `今日主题相对弱项：${weakestTheme.name}${formatSignedPercent(weakestTheme.dailyPctChange)}。`,
+    '科技成长暴露已不低，只有主线强且回踩质量好时才考虑继续分批。',
+  ];
+}
+
+function mapPortfolioContextToResearchContext(context: PortfolioContextDto): ResearchPortfolioContextDto {
+  return {
+    owner: context.owner,
+    accountScope: context.accountScope,
+    stockAccount: {
+      positionLevel: '半仓不到',
+      positions: context.positions.map(mapPositionToResearchPosition),
+    },
+    fundAccount: {
+      totalAssetValue: toNumber(context.account.totalAssetValue ?? context.summary.visibleFundValue),
+      visibleAssetValue: toNumber(context.summary.visibleFundValue),
+      exposures: context.fundExposures.map(mapFundToResearchExposure),
+    },
+    watchThemes: context.watchThemes.map((theme) => theme.name),
+    riskFlags: context.riskFlags,
+    actionPolicy: {
+      allowedActions: ['hold', 'add', 'build', 'watch', 'take_profit', 'risk_control'],
+      defaultBias: 'watch',
+      rules: context.actionRules,
+    },
+  };
+}
+
+function mapPositionToResearchPosition(position: PortfolioPositionDto): ResearchStockPositionDto {
+  return {
+    symbol: position.symbol,
+    name: position.name,
+    quantity: position.quantity,
+    costPrice: toNumber(position.costPrice),
+    theme: position.themeTags.join(' / '),
+    thesis: position.thesisSummary ?? '',
+    actionBias: toResearchAction(position.actionBias),
+  };
+}
+
+function mapFundToResearchExposure(exposure: PortfolioFundExposureDto): ResearchFundExposureDto {
+  return {
+    name: exposure.name,
+    theme: exposure.theme,
+    amount: toNumber(exposure.amount),
+    weightPercent: toNumber(exposure.weightPercent ?? '0'),
+    actionBias: toResearchAction(exposure.actionBias),
+  };
+}
+
+function buildThemeExposureSummaries(context: PortfolioContextDto): readonly ResearchThemeExposureSummaryDto[] {
+  const stockWeightPercent = toNumber(context.summary.stockWeightPercent);
+  const fundSummaries = context.fundExposures.map((exposure) => ({
+    theme: exposure.theme,
+    source: 'fund' as const,
+    amount: toNumber(exposure.amount),
+    weightPercent: toNumber(exposure.weightPercent ?? '0'),
+    actionBias: toResearchAction(exposure.actionBias),
+    riskNote: buildFundRiskNote(exposure),
+    nextStep: buildNextStep(exposure.actionBias, exposure.theme),
+  }));
+  const stockSummaries = groupStockThemeExposures(context.positions, stockWeightPercent);
+
+  return [...fundSummaries, ...stockSummaries];
+}
+
+function groupStockThemeExposures(
+  positions: readonly PortfolioPositionDto[],
+  stockWeightPercent: number,
+): readonly ResearchThemeExposureSummaryDto[] {
+  const grouped = new Map<string, { amount: number; actionBias: ResearchAction; names: string[] }>();
+  const actionPriority: Record<ResearchAction, number> = {
+    risk_control: 6,
+    take_profit: 5,
+    watch: 4,
+    build: 3,
+    add: 2,
+    hold: 1,
+  };
+
+  for (const position of positions) {
+    const positionAmount = position.quantity * toNumber(position.costPrice);
+    for (const theme of position.themeTags) {
+      const current = grouped.get(theme);
+      const actionBias = toResearchAction(position.actionBias);
+      if (current === undefined) {
+        grouped.set(theme, { amount: positionAmount, actionBias, names: [position.name] });
+        continue;
+      }
+
+      current.amount += positionAmount;
+      current.names.push(position.name);
+      if (actionPriority[actionBias] > actionPriority[current.actionBias]) {
+        current.actionBias = actionBias;
+      }
+    }
+  }
+
+  return [...grouped.entries()].map(([theme, value]) => ({
+    theme,
+    source: 'stock' as const,
+    amount: roundMoney(value.amount),
+    weightPercent: stockWeightPercent,
+    actionBias: value.actionBias,
+    riskNote: `股票侧 ${value.names.join('、')} 与${theme}相关，需要持续检查集中度和趋势质量。`,
+    nextStep: buildNextStep(value.actionBias, theme),
+  }));
+}
+
+function buildReviewThemeExposures(context: PortfolioContextDto): ResearchPortfolioReviewDto['themeExposures'] {
+  const summaries = buildThemeExposureSummaries(context);
+  const reviewItems = summaries.slice(0, 4).map((summary) => ({
+    theme: summary.theme,
+    status: summary.source === 'stock' ? '股票持仓相关主题' : '基金账户主题暴露',
+    suggestion: summary.nextStep,
+  }));
+
+  return [
     { theme: 'AI / 机器人 / 物理 AI', status: '核心观察方向', suggestion: '结合强弱和回踩质量决定是否分批加仓。' },
-    { theme: '通信设备 / CPO', status: '已有较高基金暴露', suggestion: '上涨时关注止盈节奏，下跌时看 thesis 是否被破坏。' },
-    { theme: '黄金', status: '组合避险资产', suggestion: '用于平衡高波动科技暴露，不宜只按短线涨跌处理。' },
-    { theme: '绿电', status: '偏弱暴露', suggestion: '若无催化和趋势修复，降低加仓优先级。' },
-  ],
-  priorities: ['先控制高拥挤主题追高风险。', '再寻找强主题回踩后的分批建仓点。', '保留现金应对风格切换。'],
-  riskNotes: ['第一版为静态 fallback，不构成买卖建议。', '真实建议必须接入行情、持仓成本和主题强弱后生成。'],
-};
+    ...reviewItems,
+  ];
+}
 
-const PORTFOLIO_CONTEXT: ResearchPortfolioContextDto = {
-  owner: 'Ricki',
-  accountScope: 'A 股账户 + 可见基金持仓',
-  stockAccount: {
-    positionLevel: '半仓不到',
-    positions: [
-      {
-        symbol: '600366',
-        name: '宁波韵升',
-        quantity: 800,
-        costPrice: 13.47,
-        theme: '机器人 / 新材料 / 磁材',
-        thesis: '物理 AI 与机器人链条观察标的，后续需要用行情强弱和主题延续性验证。',
-        actionBias: 'hold',
-      },
-      {
-        symbol: '601689',
-        name: '拓普集团',
-        quantity: 200,
-        costPrice: 69.62,
-        theme: '机器人 / 汽车零部件',
-        thesis: '机器人和智能汽车弹性方向，重点跟踪主题拥挤度与趋势质量。',
-        actionBias: 'hold',
-      },
-      {
-        symbol: '002031',
-        name: '巨轮智能',
-        quantity: 1500,
-        costPrice: 8.37,
-        theme: '机器人 / 智能装备',
-        thesis: '高弹性机器人方向，适合用风控条件约束，不宜无信号追高。',
-        actionBias: 'watch',
-      },
-      {
-        symbol: '002714',
-        name: '牧原股份',
-        quantity: 100,
-        costPrice: 44.67,
-        theme: '消费 / 农牧周期',
-        thesis: '非 AI 主线的周期/消费平衡仓，关注猪周期和组合分散价值。',
-        actionBias: 'hold',
-      },
-    ],
-  },
-  fundAccount: {
-    totalAssetValue: 141737,
-    visibleAssetValue: 135386,
-    exposures: [
-      { name: '纳指100', theme: '海外科技', amount: 33910, weightPercent: 23.93, actionBias: 'hold' },
-      { name: '通信设备', theme: '通信设备 / CPO', amount: 21137, weightPercent: 14.91, actionBias: 'watch' },
-      { name: '数字经济 / 大科技', theme: '数字经济 / 大科技', amount: 19320, weightPercent: 13.63, actionBias: 'hold' },
-      { name: '黄金', theme: '黄金 / 避险', amount: 16017, weightPercent: 11.3, actionBias: 'hold' },
-      { name: '中证1000', theme: '小盘风格', amount: 14516, weightPercent: 10.24, actionBias: 'watch' },
-      { name: '人工智能', theme: 'AI / 人工智能', amount: 13301, weightPercent: 9.38, actionBias: 'watch' },
-      { name: '绿电', theme: '绿电 / 新能源', amount: 8960, weightPercent: 6.32, actionBias: 'risk_control' },
-      { name: '消费', theme: '消费', amount: 2747, weightPercent: 1.94, actionBias: 'watch' },
-      { name: '恒生科技', theme: '港股科技', amount: 2307, weightPercent: 1.63, actionBias: 'watch' },
-      { name: '全球精选', theme: '全球权益', amount: 2029, weightPercent: 1.43, actionBias: 'hold' },
-      { name: '标普500', theme: '海外宽基', amount: 1142, weightPercent: 0.81, actionBias: 'hold' },
-    ],
-  },
-  watchThemes: ['物理 AI', '机器人', 'AI ETF', '通信设备 / CPO', '黄金', '中证1000', '绿电', '恒生科技'],
-  riskFlags: [
-    '基金侧海外科技 + 通信设备 + 数字经济 + 人工智能暴露较集中，强行情可贡献弹性，退潮时也会放大波动。',
-    '股票侧机器人/物理 AI 相关标的较多，后续建议使用 thesis 和风控条件约束加仓。',
-    '绿电暴露当前应降低加仓优先级，等待趋势或催化修复。',
-  ],
-  actionPolicy: {
-    allowedActions: ['hold', 'add', 'build', 'watch', 'take_profit', 'risk_control'],
-    defaultBias: 'watch',
-    rules: [
-      '没有真实行情和主题强弱确认前，默认观察，不主动追高。',
-      '半仓不到时可以寻找分批加仓点，但必须优先检查主题拥挤度和组合集中度。',
-      '任何加仓建议必须同时给出触发条件、反证条件和风控条件。',
-    ],
-  },
-};
+function buildActionBuckets(context: PortfolioContextDto): ResearchDailyNoteDto['actionBuckets'] {
+  const fundLabels = context.fundExposures.map((exposure) => ({ action: exposure.actionBias, label: exposureLabel(exposure) }));
+  const themeLabels = context.watchThemes.map((theme) => ({ action: theme.actionBias, label: theme.name }));
+  const positionLabels = context.positions.map((position) => ({ action: position.actionBias, label: `${position.name} / ${position.themeTags[0] ?? position.symbol}` }));
 
-const THEME_EXPOSURES: readonly ResearchThemeExposureSummaryDto[] = [
-  {
-    theme: '海外科技',
-    source: 'fund',
-    amount: 33910,
-    weightPercent: 23.93,
-    actionBias: 'hold',
-    riskNote: '纳指100为最大单一基金暴露，和 A 股大科技方向存在风格同向。',
-    nextStep: '若海外科技继续强势可持有；若高位波动放大，优先观察而非追加。',
-  },
-  {
-    theme: '通信设备 / CPO',
-    source: 'fund',
-    amount: 21137,
-    weightPercent: 14.91,
-    actionBias: 'watch',
-    riskNote: '通信设备暴露较高，和 AI 算力链条相关度强。',
-    nextStep: '等待主题强度确认；冲高时关注止盈节奏，回踩不破再考虑分批。',
-  },
-  {
-    theme: 'AI / 人工智能',
-    source: 'fund',
-    amount: 13301,
-    weightPercent: 9.38,
-    actionBias: 'watch',
-    riskNote: '与数字经济、大科技、通信设备存在交叉暴露。',
-    nextStep: '优先结合 AI ETF 和机器人观察池，避免同主题重复追高。',
-  },
-  {
-    theme: '机器人 / 物理 AI',
-    source: 'stock',
-    amount: null,
-    weightPercent: null,
-    actionBias: 'watch',
-    riskNote: '股票侧 600366、601689、002031 均与机器人/物理 AI 相关，弹性和波动同步放大。',
-    nextStep: '后续接入实时价格后计算股票侧实际权重，再决定继续持有、分批或风控。',
-  },
-  {
-    theme: '黄金 / 避险',
-    source: 'fund',
-    amount: 16017,
-    weightPercent: 11.3,
-    actionBias: 'hold',
-    riskNote: '黄金可平衡科技成长高波动，但不应替代权益仓位判断。',
-    nextStep: '作为组合稳定器持有，若风险偏好显著回升再评估止盈。',
-  },
-  {
-    theme: '绿电 / 新能源',
-    source: 'fund',
-    amount: 8960,
-    weightPercent: 6.32,
-    actionBias: 'risk_control',
-    riskNote: '当前暴露不高但趋势和催化优先级偏低。',
-    nextStep: '暂不加仓，等待趋势修复或明确政策/产业催化。',
-  },
-];
+  return {
+    hold: uniqueLabels([
+      ...fundLabels.filter((item) => item.action === 'hold').map((item) => item.label),
+      ...positionLabels.filter((item) => item.action === 'hold').map((item) => item.label),
+      '核心机器人链股票继续按 thesis 持有',
+    ]),
+    add: uniqueLabels([...fundLabels, ...themeLabels, ...positionLabels].filter((item) => item.action === 'add').map((item) => item.label)),
+    build: uniqueLabels([
+      ...fundLabels.filter((item) => item.action === 'build').map((item) => item.label),
+      ...themeLabels.filter((item) => item.action === 'build').map((item) => item.label),
+      'AI ETF 或机器人 ETF 仅在回踩不破时小仓分批',
+    ]),
+    watch: uniqueLabels([
+      ...fundLabels.filter((item) => item.action === 'watch').map((item) => item.label),
+      ...themeLabels.filter((item) => item.action === 'watch').map((item) => item.label),
+      ...positionLabels.filter((item) => item.action === 'watch').map((item) => item.label),
+    ]),
+    takeProfit: uniqueLabels([...fundLabels, ...themeLabels, ...positionLabels].filter((item) => item.action === 'take_profit').map((item) => item.label)),
+    riskControl: uniqueLabels([
+      ...fundLabels.filter((item) => item.action === 'risk_control').map((item) => item.label),
+      ...themeLabels.filter((item) => item.action === 'risk_control').map((item) => item.label),
+      ...positionLabels.filter((item) => item.action === 'risk_control').map((item) => item.label),
+      '绿电 / 新能源暂不加仓',
+      '巨轮智能等高弹性机器人股用趋势破位做风控',
+    ]),
+  };
+}
+
+function exposureLabel(exposure: PortfolioFundExposureDto): string {
+  if (exposure.theme.includes(exposure.name)) {
+    return exposure.theme;
+  }
+
+  return `${exposure.name} / ${exposure.theme}`;
+}
+
+function findHighestFundExposure(exposures: readonly PortfolioFundExposureDto[]): PortfolioFundExposureDto {
+  return exposures.reduce((max, exposure) => (
+    toNumber(exposure.weightPercent ?? '0') > toNumber(max.weightPercent ?? '0') ? exposure : max
+  ));
+}
+
+function buildFundRiskNote(exposure: PortfolioFundExposureDto): string {
+  if (exposure.theme.includes('海外科技') || exposure.theme.includes('AI') || exposure.theme.includes('通信')) {
+    return `${exposure.theme}与科技成长风格相关，强行情贡献弹性，退潮时也会放大波动。`;
+  }
+
+  if (exposure.theme.includes('黄金')) {
+    return '黄金可平衡科技成长高波动，但不应替代权益仓位判断。';
+  }
+
+  return `${exposure.theme}暴露需要结合主题强弱和组合集中度跟踪。`;
+}
+
+function buildNextStep(actionBias: string, theme: string): string {
+  const action = toResearchAction(actionBias);
+  if (action === 'hold') {
+    return `继续持有${theme}，若波动放大则重新评估仓位贡献和风险。`;
+  }
+
+  if (action === 'build' || action === 'add') {
+    return `仅在${theme}回踩不破且主题强度确认时分批。`;
+  }
+
+  if (action === 'risk_control') {
+    return `${theme}暂不加仓，优先等待趋势修复或明确催化。`;
+  }
+
+  if (action === 'take_profit') {
+    return `${theme}冲高时关注止盈节奏，避免回撤吞噬收益。`;
+  }
+
+  return `继续观察${theme}，等待主题强度、估值和趋势共同确认。`;
+}
+
+function toResearchAction(value: string): ResearchAction {
+  if (isResearchAction(value)) {
+    return value;
+  }
+
+  return 'watch';
+}
+
+function isResearchAction(value: string): value is ResearchAction {
+  return ['hold', 'add', 'build', 'watch', 'take_profit', 'risk_control'].includes(value);
+}
+
+function toNumber(value: string): number {
+  return Number.parseFloat(value);
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function roundPercent(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function formatCurrency(value: number): string {
+  return Math.round(value).toLocaleString('zh-CN');
+}
+
+function formatWan(value: number): string {
+  return (value / 10000).toFixed(2);
+}
+
+function findTopMovedPosition(positions: readonly PortfolioPositionDto[]): PortfolioPositionDto | undefined {
+  return positions
+    .filter((position) => position.dailyPctChange !== null && position.dailyPctChange !== undefined)
+    .sort((left, right) => Math.abs(toNumber(right.dailyPctChange ?? '0')) - Math.abs(toNumber(left.dailyPctChange ?? '0')))[0];
+}
+
+function findTopMovedMarketSnapshot(
+  snapshots: readonly ResearchMarketSnapshotDto[],
+  category: 'index' | 'theme',
+): ResearchMarketSnapshotDto | undefined {
+  return snapshots
+    .filter((snapshot) => snapshot.category === category)
+    .sort((left, right) => Math.abs(right.dailyPctChange) - Math.abs(left.dailyPctChange))[0];
+}
+
+function findStrongestThemeSnapshot(snapshots: readonly ResearchMarketSnapshotDto[]): ResearchMarketSnapshotDto | undefined {
+  return snapshots
+    .filter((snapshot) => snapshot.category === 'theme')
+    .sort((left, right) => right.dailyPctChange - left.dailyPctChange)[0];
+}
+
+function findWeakestThemeSnapshot(snapshots: readonly ResearchMarketSnapshotDto[]): ResearchMarketSnapshotDto | undefined {
+  return snapshots
+    .filter((snapshot) => snapshot.category === 'theme')
+    .sort((left, right) => left.dailyPctChange - right.dailyPctChange)[0];
+}
+
+function formatYi(value: number): string {
+  return (value / 100000000).toFixed(0);
+}
+
+function formatSignedPercent(value: number): string {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+}
+
+function uniqueLabels(labels: readonly string[]): readonly string[] {
+  return [...new Set(labels)];
+}
 
 const IDEAS: readonly ResearchIdeaDto[] = [
   {

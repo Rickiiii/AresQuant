@@ -24,6 +24,8 @@ describe('DataSyncService', () => {
       getSuspensions: jest.fn(),
       getAdjFactors: jest.fn(),
       getFinancialFactors: jest.fn(),
+      getStockQuotes: jest.fn(),
+      getMarketSnapshots: jest.fn(),
     };
     const stockRepository = { upsertMany: jest.fn().mockResolvedValue(1), findAll: jest.fn(), findBySymbol: jest.fn(), findByDateRange: jest.fn(), findLatestDate: jest.fn(), count: jest.fn(), deleteByDateRange: jest.fn() } as unknown as StockRepository;
     const logRepository = { create: jest.fn().mockResolvedValue('log-1'), update: jest.fn().mockResolvedValue(undefined) } as unknown as DataSyncLogRepository;
@@ -56,6 +58,8 @@ describe('DataSyncService', () => {
       getSuspensions: jest.fn(),
       getAdjFactors: jest.fn(),
       getFinancialFactors: jest.fn().mockResolvedValue([{ symbol: '000001', reportDate: '00000000', annDate: '00000000' }]),
+      getStockQuotes: jest.fn(),
+      getMarketSnapshots: jest.fn(),
     };
     const stockRepository = { upsertMany: jest.fn(), findAll: jest.fn(), findBySymbol: jest.fn(), findByDateRange: jest.fn(), findLatestDate: jest.fn(), count: jest.fn(), deleteByDateRange: jest.fn() } as unknown as StockRepository;
     const service = new DataSyncService(

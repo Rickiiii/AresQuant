@@ -104,12 +104,15 @@ enum PortfolioAccountType {
   MIXED
 }
 
+<<<<<<< HEAD
 enum PortfolioRiskLevel {
   LOW
   MEDIUM
   HIGH
 }
 
+=======
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
 enum PortfolioActionBias {
   HOLD
   ADD
@@ -119,10 +122,17 @@ enum PortfolioActionBias {
   RISK_CONTROL
 }
 
+<<<<<<< HEAD
 enum PortfolioExposureSource {
   STOCK
   FUND
   MIXED
+=======
+enum PortfolioRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
 }
 
 model Security {
@@ -309,6 +319,107 @@ model FinancialFactor {
   @@unique([symbol, reportDate])
   @@index([annDate])
   @@map("financial_factors")
+}
+
+model PortfolioAccount {
+  id                String               @id @default(uuid()) @db.Uuid
+  name              String               @db.VarChar(128)
+  accountType       PortfolioAccountType @map("account_type")
+  baseCurrency      String               @default("CNY") @map("base_currency") @db.VarChar(16)
+  totalAssetValue   Decimal?             @map("total_asset_value") @db.Decimal(24, 6)
+  cashValue         Decimal?             @map("cash_value") @db.Decimal(24, 6)
+  visibleAssetValue Decimal?             @map("visible_asset_value") @db.Decimal(24, 6)
+  description       String?              @db.Text
+  isDefault         Boolean              @default(false) @map("is_default")
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  positions     PortfolioPosition[]
+  fundExposures PortfolioFundExposure[]
+  watchThemes   PortfolioWatchTheme[]
+
+  @@index([accountType, isDefault])
+  @@map("portfolio_accounts")
+}
+
+model PortfolioPosition {
+  id            String              @id @default(uuid()) @db.Uuid
+  accountId     String              @map("account_id") @db.Uuid
+  symbol        String              @db.VarChar(12)
+  name          String              @db.VarChar(64)
+  quantity      Int
+  costPrice     Decimal             @map("cost_price") @db.Decimal(18, 6)
+  latestPrice   Decimal?            @map("latest_price") @db.Decimal(18, 6)
+  marketValue   Decimal?            @map("market_value") @db.Decimal(24, 6)
+  unrealizedPnl Decimal?            @map("unrealized_pnl") @db.Decimal(24, 6)
+  themeTags     String[]            @default([]) @map("theme_tags")
+  thesisSummary String?             @map("thesis_summary") @db.Text
+  actionBias    PortfolioActionBias @default(WATCH) @map("action_bias")
+  riskLevel     PortfolioRiskLevel  @default(MEDIUM) @map("risk_level")
+  notes         String?             @db.Text
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  account PortfolioAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, symbol])
+  @@index([symbol])
+  @@index([actionBias, riskLevel])
+  @@map("portfolio_positions")
+}
+
+model PortfolioFundExposure {
+  id            String              @id @default(uuid()) @db.Uuid
+  accountId     String              @map("account_id") @db.Uuid
+  name          String              @db.VarChar(128)
+  fundCode      String?             @map("fund_code") @db.VarChar(32)
+  theme         String              @db.VarChar(128)
+  amount        Decimal             @db.Decimal(24, 6)
+  weightPercent Decimal?            @map("weight_percent") @db.Decimal(12, 6)
+  actionBias    PortfolioActionBias @default(WATCH) @map("action_bias")
+  riskLevel     PortfolioRiskLevel  @default(MEDIUM) @map("risk_level")
+  notes         String?             @db.Text
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  account PortfolioAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, name, theme])
+  @@index([fundCode])
+  @@index([theme, actionBias])
+  @@map("portfolio_fund_exposures")
+}
+
+model PortfolioThemeTag {
+  id          String             @id @default(uuid()) @db.Uuid
+  name        String             @unique @db.VarChar(128)
+  category    String?            @db.VarChar(64)
+  description String?            @db.Text
+  riskLevel   PortfolioRiskLevel @default(MEDIUM) @map("risk_level")
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([category, riskLevel])
+  @@map("portfolio_theme_tags")
+}
+
+model PortfolioWatchTheme {
+  id         String              @id @default(uuid()) @db.Uuid
+  accountId  String              @map("account_id") @db.Uuid
+  name       String              @db.VarChar(128)
+  category   String?             @db.VarChar(64)
+  priority   Int                 @default(0)
+  actionBias PortfolioActionBias @default(WATCH) @map("action_bias")
+  riskLevel  PortfolioRiskLevel  @default(MEDIUM) @map("risk_level")
+  notes      String?             @db.Text
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  account PortfolioAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, name])
+  @@index([priority, actionBias])
+  @@map("portfolio_watch_themes")
 }
 
 model DataSyncLog {

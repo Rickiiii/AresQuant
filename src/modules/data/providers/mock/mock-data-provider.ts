@@ -7,6 +7,9 @@ import type {
   FinancialFactorRawData,
   IndexDailyBarRawData,
   LimitPriceRawData,
+  MarketSnapshotRawData,
+  MarketSnapshotRequest,
+  StockQuoteRawData,
   StockRawData,
   SuspensionRawData,
   TradingCalendarRawData,
@@ -147,6 +150,46 @@ export class MockDataProvider implements DataProvider {
         profitGrowth: 7.2,
       },
     ];
+  }
+
+  async getMarketSnapshots(items: readonly MarketSnapshotRequest[]): Promise<readonly MarketSnapshotRawData[]> {
+    return items.map((item, index) => {
+      const latestPrice = item.category === 'index' ? 3000 + index * 100 : 1 + index * 0.05;
+      const change = item.category === 'index' ? 12 + index : 0.01 + index * 0.01;
+      const pctChange = round((change / latestPrice) * 100);
+      return {
+        code: item.code,
+        name: item.name,
+        category: item.category,
+        latestPrice: round(latestPrice),
+        change: round(change),
+        pctChange,
+        amount: item.category === 'index' ? 120_000_000_000 : 300_000_000,
+        source: 'mock',
+      };
+    });
+  }
+
+  async getStockQuotes(symbols: readonly string[]): Promise<readonly StockQuoteRawData[]> {
+    return symbols.map((symbol, index) => {
+      const base = symbol.startsWith('6') ? 12 : 8;
+      const latestPrice = round(base + index * 0.5);
+      const preClose = round(latestPrice - 0.1);
+      return {
+        symbol,
+        name: this.stocks.find((stock) => stock.symbol === symbol)?.name ?? symbol,
+        latestPrice,
+        change: round(latestPrice - preClose),
+        pctChange: round(((latestPrice - preClose) / preClose) * 100),
+        open: preClose,
+        high: round(latestPrice * 1.02),
+        low: round(latestPrice * 0.98),
+        preClose,
+        volume: 1_000_000,
+        amount: round(1_000_000 * latestPrice),
+        source: 'mock',
+      };
+    });
   }
 }
 

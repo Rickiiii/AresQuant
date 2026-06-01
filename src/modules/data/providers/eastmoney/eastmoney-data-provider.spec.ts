@@ -171,6 +171,68 @@ describe('EastmoneyDataProvider', () => {
     );
   });
 
+  it('maps Eastmoney quote rows for selected portfolio symbols', async () => {
+    const fetcher = fakeFetch({
+      rc: 0,
+      data: {
+        diff: [
+          { f12: '600366', f14: '宁波韵升', f2: 15.25, f3: 2.01, f4: 0.3, f5: 123456, f6: 18827160, f17: 14.9, f15: 15.4, f16: 14.7, f18: 14.95 },
+          { f12: '000001', f14: '平安银行', f2: 10.01, f3: -0.1, f4: -0.01, f5: 1000, f6: 10010, f17: 10.02, f15: 10.08, f16: 9.99, f18: 10.02 },
+        ],
+      },
+    });
+    const provider = new EastmoneyDataProvider(fetcher);
+
+    await expect(provider.getStockQuotes(['600366'])).resolves.toEqual([
+      {
+        symbol: '600366',
+        name: '宁波韵升',
+        latestPrice: 15.25,
+        change: 0.3,
+        pctChange: 2.01,
+        open: 14.9,
+        high: 15.4,
+        low: 14.7,
+        preClose: 14.95,
+        volume: 123456,
+        amount: 18827160,
+        source: 'eastmoney',
+      },
+    ]);
+    expect(fetcher).toHaveBeenCalledWith(
+      expect.stringContaining('secids=1.600366'),
+      expect.any(Object),
+    );
+  });
+
+  it('maps Eastmoney market snapshots for index and theme watch items', async () => {
+    const fetcher = fakeFetch({
+      rc: 0,
+      data: {
+        diff: [
+          { f12: '000300', f14: '沪深300', f2: 3980.12, f3: 1.23, f4: 48.2, f6: 250000000000 },
+          { f12: '399006', f14: '创业板指', f2: 1900.66, f3: -0.8, f4: -15.3, f6: 180000000000 },
+          { f12: '562500', f14: '机器人ETF', f2: 0.88, f3: 2.5, f4: 0.02, f6: 360000000 },
+        ],
+      },
+    });
+    const provider = new EastmoneyDataProvider(fetcher);
+
+    await expect(provider.getMarketSnapshots([
+      { code: '000300.SH', name: '沪深300', category: 'index' },
+      { code: '399006.SZ', name: '创业板指', category: 'index' },
+      { code: '562500.SH', name: '机器人ETF', category: 'theme' },
+    ])).resolves.toEqual([
+      { code: '000300.SH', name: '沪深300', category: 'index', latestPrice: 3980.12, change: 48.2, pctChange: 1.23, amount: 250000000000, source: 'eastmoney' },
+      { code: '399006.SZ', name: '创业板指', category: 'index', latestPrice: 1900.66, change: -15.3, pctChange: -0.8, amount: 180000000000, source: 'eastmoney' },
+      { code: '562500.SH', name: '机器人ETF', category: 'theme', latestPrice: 0.88, change: 0.02, pctChange: 2.5, amount: 360000000, source: 'eastmoney' },
+    ]);
+    expect(fetcher).toHaveBeenCalledWith(
+      expect.stringContaining('secids=1.000300%2C0.399006%2C1.562500'),
+      expect.any(Object),
+    );
+  });
+
   it('fails fast when Eastmoney returns an invalid payload', async () => {
     const provider = new EastmoneyDataProvider(fakeFetch({ rc: 0, data: null }));
 

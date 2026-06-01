@@ -38,6 +38,7 @@ type ApiResponse<T> = {
   readonly timestamp: string;
 };
 
+<<<<<<< HEAD
 type ViewKey = 'overview' | 'data' | 'strategies' | 'backtests' | 'research' | 'risk';
 type ThemeMode = 'light' | 'dark';
 
@@ -59,6 +60,9 @@ type DataSyncHealth = {
     readonly errorMessage?: string;
   }[];
 };
+=======
+type ViewKey = 'overview' | 'data' | 'strategies' | 'backtests' | 'research' | 'trading' | 'risk';
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
 
 type Overview = {
   readonly dataCenter: {
@@ -156,16 +160,38 @@ type ResearchPlaybook = {
   readonly output: readonly string[];
 };
 
+type ResearchMarketSnapshot = {
+  readonly code: string;
+  readonly name: string;
+  readonly category: 'index' | 'theme';
+  readonly latestPrice: number;
+  readonly dailyChange: number;
+  readonly dailyPctChange: number;
+  readonly amount: number;
+  readonly quoteSource: string;
+};
+
 type ResearchDailyNote = {
   readonly title: string;
   readonly marketState: 'fallback' | 'live';
   readonly topConclusion: string;
+  readonly portfolioCalibration: {
+    readonly stockCostValue: number;
+    readonly visibleFundValue: number;
+    readonly knownPortfolioValue: number;
+    readonly stockWeightPercent: number;
+    readonly fundWeightPercent: number;
+    readonly highestFundTheme: string;
+    readonly highestFundWeightPercent: number;
+  };
+  readonly marketSnapshots: readonly ResearchMarketSnapshot[];
   readonly sections: readonly {
     readonly code: string;
     readonly title: string;
     readonly bullets: readonly string[];
   }[];
   readonly actionBuckets: {
+    readonly hold: readonly string[];
     readonly add: readonly string[];
     readonly build: readonly string[];
     readonly watch: readonly string[];
@@ -285,6 +311,157 @@ type ResearchThemeExposureSummary = {
   readonly nextStep: string;
 };
 
+type PortfolioAccount = {
+  readonly id: string;
+  readonly name: string;
+  readonly accountType: string;
+  readonly baseCurrency: string;
+  readonly totalAssetValue: string | null;
+  readonly cashValue: string | null;
+  readonly visibleAssetValue: string | null;
+  readonly description: string | null;
+};
+
+type PortfolioPosition = {
+  readonly id: string;
+  readonly symbol: string;
+  readonly name: string;
+  readonly quantity: number;
+  readonly costPrice: string;
+  readonly latestPrice: string | null;
+  readonly marketValue: string | null;
+  readonly unrealizedPnl: string | null;
+  readonly dailyChange?: string | null;
+  readonly dailyPctChange?: string | null;
+  readonly quoteSource?: string | null;
+  readonly themeTags: readonly string[];
+  readonly thesisSummary: string | null;
+  readonly actionBias: string;
+  readonly riskLevel: string;
+  readonly notes: string | null;
+};
+
+type PortfolioFundExposure = {
+  readonly id: string;
+  readonly name: string;
+  readonly fundCode: string | null;
+  readonly theme: string;
+  readonly amount: string;
+  readonly weightPercent: string | null;
+  readonly actionBias: string;
+  readonly riskLevel: string;
+  readonly notes: string | null;
+};
+
+type PortfolioMarketSnapshot = {
+  readonly code: string;
+  readonly name: string;
+  readonly category: 'index' | 'theme';
+  readonly latestPrice: string;
+  readonly dailyChange: string;
+  readonly dailyPctChange: string;
+  readonly amount: string;
+  readonly quoteSource: string;
+};
+
+type PortfolioWatchTheme = {
+  readonly id: string;
+  readonly name: string;
+  readonly category: string | null;
+  readonly priority: number;
+  readonly actionBias: string;
+  readonly riskLevel: string;
+  readonly notes: string | null;
+};
+
+type PortfolioContext = {
+  readonly source: 'database' | 'fallback';
+  readonly owner: string;
+  readonly accountScope: string;
+  readonly account: PortfolioAccount;
+  readonly summary: {
+    readonly stockCostValue: string;
+    readonly visibleFundValue: string;
+    readonly knownPortfolioValue: string;
+    readonly stockWeightPercent: string;
+    readonly fundWeightPercent: string;
+  };
+  readonly positions: readonly PortfolioPosition[];
+  readonly fundExposures: readonly PortfolioFundExposure[];
+  readonly marketSnapshots: readonly PortfolioMarketSnapshot[];
+  readonly watchThemes: readonly PortfolioWatchTheme[];
+  readonly riskFlags: readonly string[];
+  readonly actionRules: readonly string[];
+};
+
+type PortfolioPositionDecision = {
+  readonly symbol: string;
+  readonly name: string;
+  readonly quantity: number;
+  readonly costPrice: string;
+  readonly latestPrice: string | null;
+  readonly marketValue: string | null;
+  readonly unrealizedPnl: string | null;
+  readonly unrealizedPnlPercent: string | null;
+  readonly dailyPctChange: string | null;
+  readonly action: 'hold' | 'watch' | 'avoid_add' | 'add_on_strength' | 'take_profit' | 'risk_control';
+  readonly actionLabel: string;
+  readonly riskLevel: 'low' | 'medium' | 'high';
+  readonly reasons: readonly string[];
+  readonly triggers: readonly string[];
+  readonly pricePlan: {
+    readonly currentPrice: string | null;
+    readonly costPrice: string;
+    readonly stopLossPrice: string | null;
+    readonly profitProtectPrice: string | null;
+    readonly addWatchPrice: string | null;
+    readonly strengthConfirmPrice: string | null;
+  };
+};
+
+type PortfolioTradingDecision = {
+  readonly generatedAt: string;
+  readonly marketRegime: {
+    readonly code: 'risk_on' | 'balanced' | 'weak_defensive';
+    readonly label: string;
+    readonly score: string;
+    readonly reasons: readonly string[];
+  };
+  readonly summary: {
+    readonly totalCostValue: string;
+    readonly totalMarketValue: string;
+    readonly totalUnrealizedPnl: string;
+    readonly totalUnrealizedPnlPercent: string;
+    readonly primaryAction: string;
+    readonly riskLevel: 'low' | 'medium' | 'high';
+  };
+  readonly decisions: readonly PortfolioPositionDecision[];
+  readonly actionBuckets: {
+    readonly hold: readonly string[];
+    readonly watch: readonly string[];
+    readonly avoidAdd: readonly string[];
+    readonly addOnStrength: readonly string[];
+    readonly takeProfit: readonly string[];
+    readonly riskControl: readonly string[];
+  };
+  readonly intradayPlan: {
+    readonly doNow: readonly string[];
+    readonly waitFor: readonly string[];
+    readonly avoid: readonly string[];
+    readonly emergency: readonly string[];
+  };
+  readonly marketSnapshots: readonly PortfolioMarketSnapshot[];
+  readonly nextTriggers: readonly string[];
+  readonly disclaimers: readonly string[];
+};
+
+type PortfolioData = {
+  readonly context: PortfolioContext;
+  readonly positions: readonly PortfolioPosition[];
+  readonly fundExposures: readonly PortfolioFundExposure[];
+  readonly tradingDecision: PortfolioTradingDecision;
+};
+
 type ResearchData = {
   readonly playbooks: readonly ResearchPlaybook[];
   readonly dailyNote: ResearchDailyNote;
@@ -398,9 +575,23 @@ const fallbackResearchData: ResearchData = {
     { code: 'catalyst-calendar', name: '催化日历', description: '跟踪政策、产业、财报和海外科技映射。', output: ['事件', '影响主题', '当前应对'] },
   ],
   dailyNote: {
+<<<<<<< HEAD
     title: 'AresQuant 投研中心预览',
+=======
+    title: 'AresQuant Portfolio-aware Daily Note',
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
     marketState: 'fallback',
-    topConclusion: '产品骨架已就位：先以观望和结构化复盘为主，后续接入真实持仓、行情和因子后生成更高置信度建议。',
+    topConclusion: '当前已按 Ricki 真实持仓校准：基金仍是主仓，但个股约29.9%并非 3.3%；新增 603005 后股票侧科技成长暴露更高，后续以持有、观察和回踩分批为主，不追高。',
+    portfolioCalibration: {
+      stockCostValue: 57765.19,
+      visibleFundValue: 135386,
+      knownPortfolioValue: 193151.19,
+      stockWeightPercent: 29.91,
+      fundWeightPercent: 70.09,
+      highestFundTheme: '海外科技',
+      highestFundWeightPercent: 23.93,
+    },
+    marketSnapshots: [],
     sections: [
       { code: 'market-temperature', title: '市场温度', bullets: ['等待指数、成交额、涨跌家数和风格强弱接入。'] },
       { code: 'theme-strength', title: '主题强弱', bullets: ['重点跟踪 AI、机器人、物理 AI、通信设备、黄金、中证1000、绿电。'] },
@@ -408,14 +599,20 @@ const fallbackResearchData: ResearchData = {
       { code: 'action-plan', title: '行动计划', bullets: ['没有真实信号确认前不主动追高，优先等待强主题回踩和风险确认。'] },
     ],
     actionBuckets: {
+      hold: ['黄金 / 避险', '纳指100 / 海外科技', '核心机器人链股票继续按 thesis 持有'],
       add: [],
-      build: ['强主题回踩不破趋势时考虑分批。'],
-      watch: ['AI / 机器人 / 物理 AI', '通信设备 / CPO', '黄金', '中证1000', '绿电'],
+      build: ['AI ETF 或机器人 ETF 仅在回踩不破时小仓分批。'],
+      watch: ['通信设备 / CPO', 'AI / 人工智能', '中证1000'],
       takeProfit: [],
-      riskControl: ['主题冲高回落并跌破关键趋势时收缩高波动仓位。'],
+      riskControl: ['绿电 / 新能源暂不加仓。', '巨轮智能等高弹性机器人股用趋势破位做风控。'],
     },
+<<<<<<< HEAD
     disconfirmingEvidence: ['数据同步滞后', '主题强度走弱', '持仓逻辑被反向证据破坏'],
     nextFocus: ['接入真实组合上下文', '接入主题强弱数据', '记录上次判断 vs 今日验证'],
+=======
+    disconfirmingEvidence: ['AI/机器人/通信设备同步退潮。', '高弹性个股跌破趋势且主题转弱。'],
+    nextFocus: ['接入真实 Portfolio Context', '接入主题强弱数据', '记录上次判断 vs 今日验证'],
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
   },
   portfolioReview: {
     positioning: {
@@ -438,6 +635,7 @@ const fallbackResearchData: ResearchData = {
     stockAccount: {
       positionLevel: '半仓不到',
       positions: [
+<<<<<<< HEAD
         { symbol: '600366', name: '宁波韵升', quantity: 800, costPrice: 13.47, marketValue: 10776, theme: '稀土永磁 / 电机材料', thesis: '稀土永磁/电机材料方向长期持有。', actionBias: 'hold' },
         { symbol: '601689', name: '拓普集团', quantity: 200, costPrice: 69.62, marketValue: 13924, theme: '物理AI / 机器人执行器 / 智能车', thesis: '物理AI/机器人执行器/智能车方向长期持有。', actionBias: 'hold' },
         { symbol: '002031', name: '巨轮智能', quantity: 2100, costPrice: 8.1329, marketValue: 17079.09, theme: '机器人 / 工业母机高弹性', thesis: '机器人/工业母机高弹性方向长期持有。', actionBias: 'hold' },
@@ -445,6 +643,13 @@ const fallbackResearchData: ResearchData = {
         { symbol: '603005', name: '晶方科技', quantity: 200, costPrice: 38.397, marketValue: 7679.4, theme: '半导体封测 / CIS封装', thesis: '半导体封测/CIS封装方向长期持有。', actionBias: 'hold' },
         { symbol: '560710', name: '船舶ETF', quantity: 6400, costPrice: 1.013, marketValue: 6483.2, theme: '船舶军工 / 高端装备', thesis: '船舶军工/高端装备方向长期持有。', actionBias: 'hold' },
         { symbol: '002050', name: '三花智控', quantity: 200, costPrice: 46, marketValue: 9200, theme: '新能源车热管理 / 物理AI机器人', thesis: '新能源车热管理/物理AI机器人方向长期持有。', actionBias: 'hold' },
+=======
+        { symbol: '600366', name: '宁波韵升', quantity: 800, costPrice: 13.47, theme: '机器人 / 新材料 / 磁材', thesis: '物理 AI 与机器人链条观察标的。', actionBias: 'hold' },
+        { symbol: '601689', name: '拓普集团', quantity: 200, costPrice: 69.62, theme: '机器人 / 汽车零部件', thesis: '机器人和智能汽车弹性方向。', actionBias: 'hold' },
+        { symbol: '002031', name: '巨轮智能', quantity: 2100, costPrice: 8.1329, theme: '机器人 / 智能装备', thesis: '高弹性机器人方向，已在跌停后 7.54 补仓 600 股，后续需风控约束。', actionBias: 'watch' },
+        { symbol: '002714', name: '牧原股份', quantity: 100, costPrice: 44.67, theme: '消费 / 农牧周期', thesis: '周期/消费平衡仓。', actionBias: 'hold' },
+        { symbol: '603005', name: '晶方科技', quantity: 300, costPrice: 38.397, theme: '半导体 / AI 硬件 / 先进封装', thesis: 'AI 硬件和半导体链条观察仓，等待主题强弱和趋势质量确认。', actionBias: 'watch' },
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
       ],
     },
     fundAccount: {
@@ -464,8 +669,13 @@ const fallbackResearchData: ResearchData = {
         { name: '标普500', theme: '美股宽基 / QDII', amount: 1142, weightPercent: 0.83, actionBias: 'hold' },
       ],
     },
+<<<<<<< HEAD
     watchThemes: ['机器人/物理AI', '通信设备/光模块/AI算力链', '半导体封测/CIS封装', '船舶军工/高端装备', '黄金/避险资产', 'A股小盘宽基', '港股科技/恒生科技'],
     riskFlags: ['科技成长和 AI 算力链暴露集中，主题退潮会放大波动。', '机器人/物理 AI 股票侧持仓较多，需要观察拥挤度。', '海外科技、港股科技和 A 股大科技存在同向风格风险。'],
+=======
+    watchThemes: ['物理 AI', '机器人', 'AI ETF', '通信设备 / CPO', '黄金', '中证1000', '绿电', '恒生科技'],
+    riskFlags: ['科技成长暴露集中，主题退潮会放大波动。', '机器人/物理 AI 与 AI 硬件股票方向存在同向拥挤，新增 603005 后个股权重接近三成。', '绿电当前降低加仓优先级。'],
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
     actionPolicy: {
       allowedActions: ['hold', 'add', 'build', 'watch', 'take_profit', 'risk_control'],
       defaultBias: 'watch',
@@ -473,12 +683,22 @@ const fallbackResearchData: ResearchData = {
     },
   },
   themeExposures: [
+<<<<<<< HEAD
     { theme: '美股科技 / QDII', source: 'fund', amount: 33910, weightPercent: 24.68, actionBias: 'hold', riskNote: '纳指100为最大单一基金暴露。', nextStep: '长期持有，观察美股科技估值和汇率扰动。' },
     { theme: '通信设备 / 光模块 / AI算力链', source: 'fund', amount: 21137, weightPercent: 15.39, actionBias: 'hold', riskNote: '和 AI 算力链条相关度强。', nextStep: '长期持有，关注主题拥挤度。' },
     { theme: '数字经济 / 大科技', source: 'fund', amount: 19320, weightPercent: 14.06, actionBias: 'hold', riskNote: '与美股科技和 AI 应用存在风格相关。', nextStep: '长期持有，结合主题强弱观察。' },
     { theme: '机器人 / 物理AI', source: 'stock', amount: 40203.09, weightPercent: 19.42, actionBias: 'hold', riskNote: '拓普集团、巨轮智能、三花智控同向波动可能放大。', nextStep: '长期持有，重点观察拥挤和回撤风险。' },
     { theme: '黄金 / 避险资产', source: 'fund', amount: 16017, weightPercent: 11.66, actionBias: 'hold', riskNote: '平衡科技成长高波动。', nextStep: '作为组合稳定器持有。' },
     { theme: '半导体封测 / CIS封装', source: 'stock', amount: 7679.4, weightPercent: 3.71, actionBias: 'hold', riskNote: '弹性较高，受消费电子和国产替代预期影响。', nextStep: '长期持有，关注产业景气。' },
+=======
+    { theme: '海外科技', source: 'fund', amount: 33910, weightPercent: 23.93, actionBias: 'hold', riskNote: '纳指100为最大单一基金暴露。', nextStep: '高位波动放大时观察而非追加。' },
+    { theme: '通信设备 / CPO', source: 'fund', amount: 21137, weightPercent: 14.91, actionBias: 'watch', riskNote: '和 AI 算力链条相关度强。', nextStep: '回踩不破再考虑分批。' },
+    { theme: 'AI / 人工智能', source: 'fund', amount: 13301, weightPercent: 9.38, actionBias: 'watch', riskNote: '与大科技和通信设备交叉暴露。', nextStep: '避免同主题重复追高。' },
+    { theme: '机器人 / 物理 AI', source: 'stock', amount: 41779, weightPercent: 21.63, actionBias: 'watch', riskNote: '股票侧机器人相关弹性和波动同步放大，巨轮智能跌停补仓后仓位更需要风控。', nextStep: '接入实时价格后计算实际权重，优先看趋势是否修复。' },
+    { theme: 'AI 硬件 / 半导体', source: 'stock', amount: 11519.1, weightPercent: 5.96, actionBias: 'watch', riskNote: '603005 与科技成长基金暴露存在一定同向波动。', nextStep: '等待半导体主题强弱和个股趋势确认。' },
+    { theme: '黄金 / 避险', source: 'fund', amount: 16017, weightPercent: 11.3, actionBias: 'hold', riskNote: '平衡科技成长高波动。', nextStep: '风险偏好显著回升再评估止盈。' },
+    { theme: '绿电 / 新能源', source: 'fund', amount: 8960, weightPercent: 6.32, actionBias: 'risk_control', riskNote: '趋势和催化优先级偏低。', nextStep: '暂不加仓，等待趋势修复。' },
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
   ],
   ideas: [
     {
@@ -510,13 +730,119 @@ const fallbackResearchData: ResearchData = {
   journalEntries: [],
 };
 
+const fallbackPortfolioData: PortfolioData = {
+  context: {
+    source: 'fallback',
+    owner: 'Ricki',
+    accountScope: 'A 股账户 + 可见基金持仓',
+    account: {
+      id: 'ricki-default-account',
+      name: 'Ricki 组合账户',
+      accountType: 'MIXED',
+      baseCurrency: 'CNY',
+      totalAssetValue: '141737',
+      cashValue: null,
+      visibleAssetValue: '135386',
+      description: 'Fallback preview portfolio context.',
+    },
+    summary: {
+      stockCostValue: '57765.19',
+      visibleFundValue: '135386',
+      knownPortfolioValue: '193151.19',
+      stockWeightPercent: '29.91',
+      fundWeightPercent: '70.09',
+    },
+    positions: [
+      { id: '600366', symbol: '600366', name: '宁波韵升', quantity: 800, costPrice: '13.47', latestPrice: null, marketValue: null, unrealizedPnl: null, themeTags: ['机器人', '新材料', '磁材'], thesisSummary: '物理 AI 与机器人链条观察标的。', actionBias: 'hold', riskLevel: 'medium', notes: null },
+      { id: '601689', symbol: '601689', name: '拓普集团', quantity: 200, costPrice: '69.62', latestPrice: null, marketValue: null, unrealizedPnl: null, themeTags: ['机器人', '汽车零部件'], thesisSummary: '机器人和智能汽车弹性方向。', actionBias: 'hold', riskLevel: 'medium', notes: null },
+      { id: '002031', symbol: '002031', name: '巨轮智能', quantity: 2100, costPrice: '8.1329', latestPrice: null, marketValue: null, unrealizedPnl: null, themeTags: ['机器人', '智能装备'], thesisSummary: '高弹性机器人方向，后续需风控约束。', actionBias: 'watch', riskLevel: 'high', notes: null },
+      { id: '002714', symbol: '002714', name: '牧原股份', quantity: 100, costPrice: '44.67', latestPrice: null, marketValue: null, unrealizedPnl: null, themeTags: ['消费', '农牧周期'], thesisSummary: '周期/消费平衡仓。', actionBias: 'hold', riskLevel: 'medium', notes: null },
+      { id: '603005', symbol: '603005', name: '晶方科技', quantity: 300, costPrice: '38.397', latestPrice: null, marketValue: null, unrealizedPnl: null, themeTags: ['半导体', 'AI 硬件', '先进封装'], thesisSummary: 'AI 硬件和半导体链条观察仓。', actionBias: 'watch', riskLevel: 'high', notes: null },
+    ],
+    fundExposures: [
+      { id: 'nasdaq100', name: '纳指100', fundCode: null, theme: '海外科技', amount: '33910', weightPercent: '23.93', actionBias: 'hold', riskLevel: 'medium', notes: null },
+      { id: 'communication', name: '通信设备', fundCode: null, theme: '通信设备 / CPO', amount: '21137', weightPercent: '14.91', actionBias: 'watch', riskLevel: 'high', notes: null },
+      { id: 'digital-tech', name: '数字经济 / 大科技', fundCode: null, theme: '数字经济 / 大科技', amount: '19320', weightPercent: '13.63', actionBias: 'hold', riskLevel: 'medium', notes: null },
+      { id: 'gold', name: '黄金', fundCode: null, theme: '黄金 / 避险', amount: '16017', weightPercent: '11.30', actionBias: 'hold', riskLevel: 'low', notes: null },
+      { id: 'csi1000', name: '中证1000', fundCode: null, theme: '小盘风格', amount: '14516', weightPercent: '10.24', actionBias: 'watch', riskLevel: 'medium', notes: null },
+      { id: 'ai', name: '人工智能', fundCode: null, theme: 'AI / 人工智能', amount: '13301', weightPercent: '9.38', actionBias: 'watch', riskLevel: 'high', notes: null },
+      { id: 'green-power', name: '绿电', fundCode: null, theme: '绿电 / 新能源', amount: '8960', weightPercent: '6.32', actionBias: 'risk_control', riskLevel: 'medium', notes: null },
+    ],
+    marketSnapshots: [],
+    watchThemes: [
+      { id: 'physical-ai', name: '物理 AI', category: 'core', priority: 1, actionBias: 'watch', riskLevel: 'high', notes: null },
+      { id: 'robotics', name: '机器人', category: 'core', priority: 2, actionBias: 'watch', riskLevel: 'high', notes: null },
+      { id: 'ai-etf', name: 'AI ETF', category: 'etf', priority: 3, actionBias: 'build', riskLevel: 'medium', notes: null },
+      { id: 'cpo', name: '通信设备 / CPO', category: 'theme', priority: 4, actionBias: 'watch', riskLevel: 'high', notes: null },
+      { id: 'gold', name: '黄金', category: 'hedge', priority: 5, actionBias: 'hold', riskLevel: 'low', notes: null },
+    ],
+    riskFlags: fallbackResearchData.portfolioContext.riskFlags,
+    actionRules: fallbackResearchData.portfolioContext.actionPolicy.rules,
+  },
+  positions: [
+    { id: '600366', symbol: '600366', name: '宁波韵升', quantity: 800, costPrice: '13.47', latestPrice: null, marketValue: null, unrealizedPnl: null, themeTags: ['机器人', '新材料', '磁材'], thesisSummary: '物理 AI 与机器人链条观察标的。', actionBias: 'hold', riskLevel: 'medium', notes: null },
+    { id: '601689', symbol: '601689', name: '拓普集团', quantity: 200, costPrice: '69.62', latestPrice: null, marketValue: null, unrealizedPnl: null, themeTags: ['机器人', '汽车零部件'], thesisSummary: '机器人和智能汽车弹性方向。', actionBias: 'hold', riskLevel: 'medium', notes: null },
+    { id: '002031', symbol: '002031', name: '巨轮智能', quantity: 2100, costPrice: '8.1329', latestPrice: null, marketValue: null, unrealizedPnl: null, themeTags: ['机器人', '智能装备'], thesisSummary: '高弹性机器人方向，后续需风控约束。', actionBias: 'watch', riskLevel: 'high', notes: null },
+    { id: '002714', symbol: '002714', name: '牧原股份', quantity: 100, costPrice: '44.67', latestPrice: null, marketValue: null, unrealizedPnl: null, themeTags: ['消费', '农牧周期'], thesisSummary: '周期/消费平衡仓。', actionBias: 'hold', riskLevel: 'medium', notes: null },
+    { id: '603005', symbol: '603005', name: '晶方科技', quantity: 300, costPrice: '38.397', latestPrice: null, marketValue: null, unrealizedPnl: null, themeTags: ['半导体', 'AI 硬件', '先进封装'], thesisSummary: 'AI 硬件和半导体链条观察仓。', actionBias: 'watch', riskLevel: 'high', notes: null },
+  ],
+  fundExposures: [
+    { id: 'nasdaq100', name: '纳指100', fundCode: null, theme: '海外科技', amount: '33910', weightPercent: '23.93', actionBias: 'hold', riskLevel: 'medium', notes: null },
+    { id: 'communication', name: '通信设备', fundCode: null, theme: '通信设备 / CPO', amount: '21137', weightPercent: '14.91', actionBias: 'watch', riskLevel: 'high', notes: null },
+    { id: 'digital-tech', name: '数字经济 / 大科技', fundCode: null, theme: '数字经济 / 大科技', amount: '19320', weightPercent: '13.63', actionBias: 'hold', riskLevel: 'medium', notes: null },
+    { id: 'gold', name: '黄金', fundCode: null, theme: '黄金 / 避险', amount: '16017', weightPercent: '11.30', actionBias: 'hold', riskLevel: 'low', notes: null },
+    { id: 'csi1000', name: '中证1000', fundCode: null, theme: '小盘风格', amount: '14516', weightPercent: '10.24', actionBias: 'watch', riskLevel: 'medium', notes: null },
+    { id: 'ai', name: '人工智能', fundCode: null, theme: 'AI / 人工智能', amount: '13301', weightPercent: '9.38', actionBias: 'watch', riskLevel: 'high', notes: null },
+    { id: 'green-power', name: '绿电', fundCode: null, theme: '绿电 / 新能源', amount: '8960', weightPercent: '6.32', actionBias: 'risk_control', riskLevel: 'medium', notes: null },
+  ],
+  tradingDecision: {
+    generatedAt: new Date().toISOString(),
+    marketRegime: { code: 'weak_defensive', label: '弱势防守', score: '-1.00', reasons: ['预览模式下默认防守，等待后端实时行情。'] },
+    summary: {
+      totalCostValue: '57765.19',
+      totalMarketValue: '57765.19',
+      totalUnrealizedPnl: '0.00',
+      totalUnrealizedPnlPercent: '0.00',
+      primaryAction: '暂停主动补仓，先做风险识别和仓位保护。',
+      riskLevel: 'high',
+    },
+    decisions: [
+      { symbol: '600366', name: '宁波韵升', quantity: 800, costPrice: '13.47', latestPrice: null, marketValue: '10776.00', unrealizedPnl: '0.00', unrealizedPnlPercent: '0.00', dailyPctChange: null, action: 'watch', actionLabel: '持有观察', riskLevel: 'medium', reasons: ['等待稀土/磁材和机器人主题强弱确认。'], triggers: ['站回关键均线并放量后再评估。'], pricePlan: { currentPrice: null, costPrice: '13.470000', stopLossPrice: null, profitProtectPrice: null, addWatchPrice: null, strengthConfirmPrice: '14.01' } },
+      { symbol: '601689', name: '拓普集团', quantity: 200, costPrice: '69.62', latestPrice: null, marketValue: '13924.00', unrealizedPnl: '0.00', unrealizedPnlPercent: '0.00', dailyPctChange: null, action: 'watch', actionLabel: '持有观察', riskLevel: 'medium', reasons: ['机器人/汽车链核心观察仓，等待趋势修复。'], triggers: ['板块转强后再考虑小额分批。'], pricePlan: { currentPrice: null, costPrice: '69.620000', stopLossPrice: null, profitProtectPrice: null, addWatchPrice: null, strengthConfirmPrice: '72.40' } },
+      { symbol: '002031', name: '巨轮智能', quantity: 2100, costPrice: '8.1329', latestPrice: null, marketValue: '17079.09', unrealizedPnl: '0.00', unrealizedPnlPercent: '0.00', dailyPctChange: null, action: 'avoid_add', actionLabel: '禁止补仓', riskLevel: 'high', reasons: ['高弹性机器人股，优先防止情绪化摊低成本。'], triggers: ['放量反包并站回趋势后再评估。'], pricePlan: { currentPrice: null, costPrice: '8.132900', stopLossPrice: '7.73', profitProtectPrice: null, addWatchPrice: null, strengthConfirmPrice: '7.32' } },
+      { symbol: '002714', name: '牧原股份', quantity: 100, costPrice: '44.67', latestPrice: null, marketValue: '4467.00', unrealizedPnl: '0.00', unrealizedPnlPercent: '0.00', dailyPctChange: null, action: 'hold', actionLabel: '继续持有', riskLevel: 'medium', reasons: ['消费/农牧周期仓用于平衡科技波动。'], triggers: ['周期线继续走强可小额增强。'], pricePlan: { currentPrice: null, costPrice: '44.670000', stopLossPrice: null, profitProtectPrice: null, addWatchPrice: '44.22', strengthConfirmPrice: '45.56' } },
+      { symbol: '603005', name: '晶方科技', quantity: 300, costPrice: '38.397', latestPrice: null, marketValue: '11519.10', unrealizedPnl: '0.00', unrealizedPnlPercent: '0.00', dailyPctChange: null, action: 'risk_control', actionLabel: '风控观察', riskLevel: 'high', reasons: ['半导体/AI硬件弹性仓，优先观察承接。'], triggers: ['放量跌破成本保护线时优先风控。'], pricePlan: { currentPrice: null, costPrice: '38.397000', stopLossPrice: null, profitProtectPrice: null, addWatchPrice: null, strengthConfirmPrice: '39.93' } },
+    ],
+    actionBuckets: { hold: ['002714 牧原股份'], watch: ['600366 宁波韵升', '601689 拓普集团'], avoidAdd: ['002031 巨轮智能'], addOnStrength: [], takeProfit: [], riskControl: ['603005 晶方科技'] },
+    intradayPlan: {
+      doNow: ['暂停主动补仓，先做风险识别和仓位保护。', '603005 晶方科技：进入风控观察，盯住利润保护线。'],
+      waitFor: ['等待指数企稳，并确认机器人/AI/半导体 ETF 至少同步修复。'],
+      avoid: ['不追单日急拉，不在弱势盘面扩大高弹性主题仓位。', '002031 巨轮智能：深亏/弱势票禁止摊低成本。'],
+      emergency: ['603005 晶方科技：若继续低开且无法收回 38.397000，优先保护利润。'],
+    },
+    marketSnapshots: [],
+    nextTriggers: ['指数企稳且机器人/AI/半导体主题放量修复后，才重新评估分批加仓。'],
+    disclaimers: ['预览数据不构成投资建议。'],
+  },
+};
+
 const navItems: readonly { readonly key: ViewKey; readonly label: string; readonly icon: React.ReactNode }[] = [
+<<<<<<< HEAD
   { key: 'overview', label: '总览', icon: <AreaChart size={16} /> },
   { key: 'data', label: '数据中心', icon: <DatabaseZap size={16} /> },
   { key: 'strategies', label: '策略库', icon: <BrainCircuit size={16} /> },
   { key: 'backtests', label: '回测', icon: <Gauge size={16} /> },
   { key: 'research', label: '投研中心', icon: <Sparkles size={16} /> },
   { key: 'risk', label: '风险监控', icon: <ShieldCheck size={16} /> },
+=======
+  { key: 'overview', label: 'Overview', icon: <AreaChart size={16} /> },
+  { key: 'data', label: 'Data Center', icon: <DatabaseZap size={16} /> },
+  { key: 'strategies', label: 'Strategies', icon: <BrainCircuit size={16} /> },
+  { key: 'backtests', label: 'Backtests', icon: <Gauge size={16} /> },
+  { key: 'research', label: 'Research Center', icon: <Sparkles size={16} /> },
+  { key: 'trading', label: 'Trading Decision', icon: <ListChecks size={16} /> },
+  { key: 'risk', label: 'Risk Monitor', icon: <ShieldCheck size={16} /> },
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
 ];
 
 const equityPoints = [24, 34, 29, 48, 58, 52, 74, 66, 84, 92, 86, 98];
@@ -579,7 +905,21 @@ async function loadResearch(): Promise<ResearchData> {
   return { playbooks, dailyNote, portfolioReview, portfolioContext, themeExposures, ideas, theses, catalysts, journalEntries };
 }
 
+<<<<<<< HEAD
 function useDashboardData(): { readonly data: DashboardData; readonly isLive: boolean; readonly refreshedAt: string; readonly refresh: () => Promise<void> } {
+=======
+async function loadPortfolio(): Promise<PortfolioData> {
+  const [context, positions, fundExposures, tradingDecision] = await Promise.all([
+    fetchApi<PortfolioContext>('/portfolio/context'),
+    fetchApi<readonly PortfolioPosition[]>('/portfolio/positions'),
+    fetchApi<readonly PortfolioFundExposure[]>('/portfolio/fund-exposures'),
+    fetchApi<PortfolioTradingDecision>('/portfolio/trading-decision'),
+  ]);
+  return { context, positions, fundExposures, tradingDecision };
+}
+
+function useDashboardData(): { readonly data: DashboardData; readonly isLive: boolean; readonly refreshedAt: string } {
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
   const [state, setState] = React.useState<{ readonly data: DashboardData; readonly isLive: boolean; readonly refreshedAt: string }>({
     data: fallbackData,
     isLive: false,
@@ -616,7 +956,38 @@ function useDashboardData(): { readonly data: DashboardData; readonly isLive: bo
   return { ...state, refresh };
 }
 
+<<<<<<< HEAD
 function useResearchData(): { readonly data: ResearchData; readonly isLive: boolean; readonly refresh: () => Promise<void> } {
+=======
+function usePortfolioData(): { readonly data: PortfolioData; readonly isLive: boolean } {
+  const [state, setState] = React.useState<{ readonly data: PortfolioData; readonly isLive: boolean }>({
+    data: fallbackPortfolioData,
+    isLive: false,
+  });
+
+  React.useEffect(() => {
+    let mounted = true;
+    loadPortfolio()
+      .then((data) => {
+        if (mounted) {
+          setState({ data, isLive: true });
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setState({ data: fallbackPortfolioData, isLive: false });
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return state;
+}
+
+function useResearchData(): { readonly data: ResearchData; readonly isLive: boolean } {
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
   const [state, setState] = React.useState<{ readonly data: ResearchData; readonly isLive: boolean }>({
     data: fallbackResearchData,
     isLive: false,
@@ -656,12 +1027,29 @@ function formatNumber(value: number): string {
   return new Intl.NumberFormat('zh-CN').format(value);
 }
 
-function formatMoney(value: string): string {
+function formatYi(value: number): string {
+  return (value / 100000000).toFixed(0);
+}
+
+function formatMoney(value: string | number): string {
   return `¥${formatNumber(Number(value))}`;
 }
 
+<<<<<<< HEAD
 function privacyMoney(value: number, showAmounts: boolean): string {
   return showAmounts ? `¥${formatNumber(Math.round(value))}` : '金额已隐藏';
+=======
+function formatPlanPrice(value: string | null): string {
+  if (value === null) {
+    return '—';
+  }
+
+  return `¥${Number(value).toFixed(2)}`;
+}
+
+function formatSignedPercent(value: number): string {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
 }
 
 function formatPercent(value: number): string {
@@ -942,8 +1330,14 @@ function buildPortfolioHealth(research: ResearchData): PortfolioHealthSummary {
 }
 
 function App(): React.ReactElement {
+<<<<<<< HEAD
   const { data, isLive, refreshedAt, refresh } = useDashboardData();
   const { data: researchData, isLive: isResearchLive, refresh: refreshResearch } = useResearchData();
+=======
+  const { data, isLive, refreshedAt } = useDashboardData();
+  const { data: researchData, isLive: isResearchLive } = useResearchData();
+  const { data: portfolioData, isLive: isPortfolioLive } = usePortfolioData();
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
   const [activeView, setActiveView] = React.useState<ViewKey>('overview');
   const [showAmounts, setShowAmounts] = React.useState<boolean>(() => {
     if (typeof window === 'undefined') {
@@ -1016,7 +1410,12 @@ function App(): React.ReactElement {
         {activeView === 'data' && <DataCenterView coverage={coverage} syncHealth={data.overview.dataCenter.syncHealth} onRefresh={refresh} />}
         {activeView === 'strategies' && <StrategiesView strategies={data.strategies} />}
         {activeView === 'backtests' && <BacktestsView backtests={data.backtests} byStatus={data.overview.backtests.byStatus} />}
+<<<<<<< HEAD
         {activeView === 'research' && <ResearchView data={researchData} isLive={isResearchLive} showAmounts={showAmounts} onRefresh={refreshResearch} />}
+=======
+        {activeView === 'research' && <ResearchView data={researchData} isLive={isResearchLive} portfolio={portfolioData} portfolioLive={isPortfolioLive} />}
+        {activeView === 'trading' && <TradingDecisionView data={portfolioData.tradingDecision} isLive={isPortfolioLive} />}
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
         {activeView === 'risk' && <RiskView data={data} />}
       </section>
     </main>
@@ -1025,12 +1424,22 @@ function App(): React.ReactElement {
 
 function TopBar(props: { readonly activeView: ViewKey; readonly refreshedAt: string; readonly onRefresh: () => Promise<void>; readonly onToggleAmounts: () => void; readonly onToggleTheme: () => void; readonly showAmounts: boolean; readonly themeMode: ThemeMode }): React.ReactElement {
   const titleMap: Readonly<Record<ViewKey, string>> = {
+<<<<<<< HEAD
     overview: '统一指挥台',
     data: '数据中心',
     strategies: '策略实验室',
     backtests: '回测控制台',
     research: '投研中心',
     risk: '风险监控',
+=======
+    overview: 'Unified Command Center',
+    data: 'Data Center Observatory',
+    strategies: 'Strategy Laboratory',
+    backtests: 'Backtest Control Room',
+    research: 'Research Center',
+    trading: 'Realtime Trading Decision',
+    risk: 'Risk Monitor',
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
   };
 
   return (
@@ -1504,6 +1913,7 @@ function BacktestsView(props: { readonly backtests: readonly BacktestItem[]; rea
   );
 }
 
+<<<<<<< HEAD
 function ResearchView(props: { readonly data: ResearchData; readonly isLive: boolean; readonly showAmounts: boolean; readonly onRefresh: () => Promise<void> }): React.ReactElement {
   const daily = props.data.dailyNote;
   const context = props.data.portfolioContext;
@@ -1534,12 +1944,84 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
   const topFundExposures = context.fundAccount.exposures.slice(0, 6);
   const primaryIdeas = props.data.ideas.slice(0, 4);
   const riskCount = context.riskFlags.length + props.data.portfolioReview.riskNotes.length;
+=======
+function ResearchView(props: { readonly data: ResearchData; readonly isLive: boolean; readonly portfolio: PortfolioData; readonly portfolioLive: boolean }): React.ReactElement {
+  const daily = props.data.dailyNote;
+  const context = props.data.portfolioContext;
+  const portfolio = props.portfolio.context;
+  const positions = props.portfolio.positions.length > 0 ? props.portfolio.positions : portfolio.positions;
+  const fundExposures = props.portfolio.fundExposures.length > 0 ? props.portfolio.fundExposures : portfolio.fundExposures;
+  const stockMarketValue = positions.reduce((sum, item) => sum + item.quantity * Number(item.costPrice), 0);
+  const topFundExposures = fundExposures.slice(0, 7);
+  const calibration = daily.portfolioCalibration;
+  const stockWeight = Number(portfolio.summary.stockWeightPercent);
+  const fundWeight = Number(portfolio.summary.fundWeightPercent);
+  const cashBufferWeight = Math.max(0, 100 - stockWeight - fundWeight);
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
   const actionBuckets = [
-    ['分批加仓', daily.actionBuckets.build],
+    ['继续持有', daily.actionBuckets.hold],
+    ['直接加仓', daily.actionBuckets.add],
+    ['分批建仓', daily.actionBuckets.build],
     ['观察', daily.actionBuckets.watch],
     ['风控', daily.actionBuckets.riskControl],
     ['止盈', daily.actionBuckets.takeProfit],
   ] as const;
+  const highRiskPositions = positions.filter((position) => position.riskLevel === 'high');
+  const topTheme = props.data.themeExposures
+    .filter((exposure) => exposure.weightPercent !== null)
+    .sort((a, b) => Number(b.weightPercent ?? 0) - Number(a.weightPercent ?? 0))[0];
+  const dailyChecks = [
+    { label: '今日主结论', value: props.isLive || props.portfolioLive ? 'Live' : 'Preview', helper: daily.topConclusion },
+    { label: '最大主题', value: topTheme?.theme ?? calibration.highestFundTheme, helper: `${(topTheme?.weightPercent ?? calibration.highestFundWeightPercent).toFixed(2)}% · ${topTheme?.actionBias ?? 'hold'}` },
+    { label: '高风险持仓', value: `${highRiskPositions.length} 个`, helper: highRiskPositions.map((position) => position.name).join(' / ') || '暂无高风险标记' },
+    { label: '下一步关注', value: `${daily.nextFocus.length} 项`, helper: daily.nextFocus[0] ?? '等待真实信号确认' },
+  ] as const;
+  const blockGuides = [
+    { title: 'Daily Brief', desc: '每天先看这里：主结论、最大主题、高风险持仓和下一步关注，帮助你 10 秒内进入状态。' },
+    { title: 'Portfolio X-Ray', desc: '看组合结构是否健康：股票/基金/现金缓冲比例，以及当前个股权重是否过高。' },
+    { title: 'Decision Lane', desc: '把建议强制归类为持有、观察、建仓、风控、止盈，避免一堆文字看完不知道怎么做。' },
+    { title: 'Holdings Board', desc: '逐只股票看主题标签、成本口径、动作偏向和风险级别，用于每日持仓体检。' },
+    { title: 'Exposure Tower', desc: '按基金主题权重排序，看是否过度集中在海外科技、通信设备、AI 或黄金。' },
+    { title: 'Risk / Thesis', desc: '记录什么情况下需要风控、什么证据会推翻持仓逻辑，防止情绪化操作。' },
+  ] as const;
+  const marketSnapshots = daily.marketSnapshots.length > 0
+    ? daily.marketSnapshots
+    : portfolio.marketSnapshots.map((snapshot) => ({
+      code: snapshot.code,
+      name: snapshot.name,
+      category: snapshot.category,
+      latestPrice: Number(snapshot.latestPrice),
+      dailyChange: Number(snapshot.dailyChange),
+      dailyPctChange: Number(snapshot.dailyPctChange),
+      amount: Number(snapshot.amount),
+      quoteSource: snapshot.quoteSource,
+    }));
+  const marketPulse = marketSnapshots
+    .slice()
+    .sort((left, right) => Math.abs(right.dailyPctChange) - Math.abs(left.dailyPctChange))
+    .slice(0, 8);
+
+  const topThreeFocus = [
+    { title: '先确认主线强弱', detail: marketPulse.length > 0 ? marketPulse.slice(0, 3).map((item) => `${item.name}${formatSignedPercent(item.dailyPctChange)}`).join(' / ') : topTheme ? `${topTheme.theme} 当前权重 ${topTheme.weightPercent?.toFixed(2)}%，动作偏向 ${topTheme.actionBias}。` : '等待主题强弱数据接入。', tone: 'violet' },
+    { title: '再检查高风险个股', detail: highRiskPositions.length > 0 ? highRiskPositions.map((position) => `${position.name}(${position.actionBias})`).join(' / ') : '暂无高风险个股标记。', tone: 'amber' },
+    { title: '最后决定是否动手', detail: daily.actionBuckets.build[0] ?? daily.actionBuckets.watch[0] ?? '没有触发条件前默认观察。', tone: 'green' },
+  ] as const;
+  const triggerGroups = [
+    { title: '可以分批加仓', label: 'ADD WHEN', items: ['主题强度保持前列且没有放量冲高回落。', '核心持仓回踩不破趋势，风险收益比重新变好。', '组合内同主题仓位没有继续拥挤。'] },
+    { title: '暂时不要加仓', label: 'DO NOT ADD', items: ['AI / 机器人 / 通信设备同步退潮。', '高波动个股跌破趋势但没有修复。', '只是因为上涨焦虑而追高，没有明确触发条件。'] },
+    { title: '触发风控动作', label: 'RISK OFF', items: daily.actionBuckets.riskControl.length > 0 ? [...daily.actionBuckets.riskControl, ...daily.disconfirmingEvidence.slice(0, 1)] : daily.disconfirmingEvidence },
+  ] as const;
+  const validationRows = [
+    { check: '昨日/上次判断', result: daily.topConclusion, status: 'tracking' },
+    { check: '今日需要验证', result: daily.nextFocus.join(' / '), status: 'pending' },
+    { check: '反证条件', result: daily.disconfirmingEvidence.join(' / '), status: 'risk' },
+  ] as const;
+  const themeTemperature = props.data.themeExposures.slice(0, 8).map((exposure, index) => ({
+    theme: exposure.theme,
+    action: exposure.actionBias,
+    score: Math.min(96, Math.max(28, Number(exposure.weightPercent ?? 8) * 3 + 18 - index * 2)),
+    risk: exposure.riskNote,
+  }));
 
   async function saveStockHolding(): Promise<void> {
     setIsSavingPortfolio(true);
@@ -1620,6 +2102,7 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
     <div className="view-stack research-view">
       <section className="hero-card research-hero">
         <div>
+<<<<<<< HEAD
           <div className="eyebrow"><Sparkles size={14} /> {daily.marketState === 'live' && props.isLive ? '投研 API 实时连接' : '投研预览数据'}</div>
           <h2>今日决策板</h2>
           <p>{localizedText(daily.topConclusion)}</p>
@@ -1628,9 +2111,15 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
           <span>信号姿态</span>
           <strong>{actionLabel(context.actionPolicy.defaultBias)}</strong>
           <small>{daily.nextFocus[0] === undefined ? '等待下一步投研信号' : localizedText(daily.nextFocus[0])}</small>
+=======
+          <div className="eyebrow"><Sparkles size={14} /> {props.isLive || props.portfolioLive ? 'Live APIs connected' : 'Fallback preview'} · Portfolio {props.portfolioLive ? 'live' : 'preview'}</div>
+          <h2>把行情、持仓和策略信号翻译成可执行的 A 股投研动作</h2>
+          <p>{daily.topConclusion}</p>
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
         </div>
       </section>
 
+<<<<<<< HEAD
       <section className="research-kpi-strip">
         <div><span>估算组合口径</span><strong>{privacyMoney(estimatedPortfolioValue, props.showAmounts)}</strong><small>股票 {formatPercent(stockMarketValue / Math.max(estimatedPortfolioValue, 1) * 100)} / 基金 {formatPercent(fundVisibleValue / Math.max(estimatedPortfolioValue, 1) * 100)}</small></div>
         <div><span>股票持仓</span><strong>{context.stockAccount.positions.length}</strong><small>{context.stockAccount.positionLevel}</small></div>
@@ -1642,6 +2131,182 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
       <section className="research-command-grid">
         <article className="glass-card research-note-card">
           <CardHeader icon={<Radar />} title={noteTitle(daily.title)} subtitle="14:30 盘中复盘 / 盘前计划 / 收盘验证" />
+=======
+      <section className="daily-brief-grid">
+        {dailyChecks.map((item, index) => (
+          <article className={`daily-brief-card brief-${index}`} key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+            <p>{item.helper}</p>
+          </article>
+        ))}
+      </section>
+
+      {marketPulse.length > 0 && (
+        <section className="market-pulse-grid">
+          {marketPulse.map((snapshot) => (
+            <article className={`market-pulse-card ${snapshot.dailyPctChange >= 0 ? 'up' : 'down'}`} key={snapshot.code}>
+              <span>{snapshot.category === 'index' ? 'INDEX' : 'THEME'} · {snapshot.code}</span>
+              <strong>{snapshot.name}</strong>
+              <div>
+                <em>{snapshot.latestPrice.toFixed(snapshot.category === 'index' ? 2 : 3)}</em>
+                <b>{formatSignedPercent(snapshot.dailyPctChange)}</b>
+              </div>
+              <small>成交额约 {formatYi(snapshot.amount)} 亿 · {snapshot.quoteSource === 'eastmoney' ? 'Eastmoney Live' : 'Fallback'}</small>
+            </article>
+          ))}
+        </section>
+      )}
+
+      <section className="daily-operator-grid">
+        <article className="glass-card focus-three-card">
+          <CardHeader icon={<ListChecks />} title="今日只看这 3 件事" subtitle="把每日决策压缩成最短路径" />
+          <p className="function-explain">用途：每天先按顺序看这三项，先判断市场/主题，再检查持仓风险，最后决定今天是否需要动作。</p>
+          <div className="focus-three-list">
+            {topThreeFocus.map((item, index) => (
+              <div className={`focus-three-item ${item.tone}`} key={item.title}>
+                <em>{String(index + 1).padStart(2, '0')}</em>
+                <div><strong>{item.title}</strong><span>{item.detail}</span></div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="glass-card theme-temperature-card">
+          <CardHeader icon={<Waves />} title="主题温度条" subtitle="AI / 机器人 / 通信 / 黄金等方向每日强弱观察" />
+          <p className="function-explain">用途：用温度条快速观察主题拥挤和优先级；高温不等于立刻追，高温回踩不破才更适合分批。</p>
+          <div className="theme-temperature-list">
+            {themeTemperature.map((item) => (
+              <div className="theme-temp-row" key={item.theme}>
+                <div><strong>{item.theme}</strong><span>{item.action}</span></div>
+                <div className="temp-track"><i style={{ width: `${item.score}%` }} /></div>
+                <em>{Math.round(item.score)}</em>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="trigger-validation-grid">
+        <article className="glass-card trigger-card">
+          <CardHeader icon={<ShieldCheck />} title="加仓 / 不加仓 / 风控条件" subtitle="每天操作前先过这三道门" />
+          <p className="function-explain">用途：把冲动交易挡在外面；只有满足加仓条件且没有触发反证/风控时，才考虑分批执行。</p>
+          <div className="trigger-group-grid">
+            {triggerGroups.map((group) => (
+              <div className="trigger-group" key={group.title}>
+                <span>{group.label}</span>
+                <strong>{group.title}</strong>
+                {group.items.map((item) => <p key={item}>{item}</p>)}
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="glass-card validation-card">
+          <CardHeader icon={<GitBranch />} title="昨日判断 vs 今日验证" subtitle="让投研框架每天自我成长" />
+          <p className="function-explain">用途：不是每天重新拍脑袋，而是持续记录“上次判断是否被验证、是否出现反证”。</p>
+          <div className="validation-list">
+            {validationRows.map((row) => (
+              <div className={`validation-row ${row.status}`} key={row.check}>
+                <span>{row.check}</span>
+                <p>{row.result}</p>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="portfolio-command-grid">
+        <article className="glass-card portfolio-radar-card">
+          <CardHeader icon={<Gauge />} title="Portfolio X-Ray" subtitle={`${portfolio.source === 'database' ? 'Database' : 'Fallback'} source · ${portfolio.accountScope}`} />
+          <p className="function-explain">用途：每天先检查组合大类比例，确认个股仓位、基金仓位和缓冲资金是否符合当前市场风险。</p>
+          <div className="allocation-stage" aria-label="portfolio allocation">
+            <div className="allocation-donut" style={{ '--stock': `${stockWeight}%`, '--fund': `${stockWeight + fundWeight}%` } as React.CSSProperties}>
+              <span>Known</span>
+              <strong>{formatMoney(portfolio.summary.knownPortfolioValue)}</strong>
+              <small>组合口径</small>
+            </div>
+            <div className="allocation-legend">
+              <div><i className="legend-stock" /><span>股票</span><strong>{stockWeight.toFixed(2)}%</strong></div>
+              <div><i className="legend-fund" /><span>基金</span><strong>{fundWeight.toFixed(2)}%</strong></div>
+              <div><i className="legend-cash" /><span>缓冲/未知</span><strong>{cashBufferWeight.toFixed(2)}%</strong></div>
+            </div>
+          </div>
+          <div className="portfolio-kpi-strip">
+            <div><span>股票成本</span><strong>{formatMoney(portfolio.summary.stockCostValue)}</strong></div>
+            <div><span>可见基金</span><strong>{formatMoney(portfolio.summary.visibleFundValue)}</strong></div>
+            <div><span>持仓标的</span><strong>{positions.length} 只</strong></div>
+          </div>
+        </article>
+
+        <article className="glass-card decision-lane-card">
+          <CardHeader icon={<ListChecks />} title="Today Decision Lane" subtitle="一眼判断：持有、观察、建仓、风控" />
+          <p className="function-explain">用途：把复杂投研结论压缩成动作队列，避免只看到观点却不知道今天该持有、观察还是风控。</p>
+          <div className="decision-lanes">
+            {actionBuckets.map(([label, items]) => (
+              <div className="decision-lane" key={label}>
+                <span>{label}</span>
+                <strong>{items.length}</strong>
+                <small>{items[0] ?? '等待真实信号确认'}</small>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="exposure-showcase-grid">
+        <article className="glass-card holdings-board">
+          <CardHeader icon={<CandlestickChart />} title="Stock Holdings Board" subtitle="个股、实时价、日内涨跌、风险等级和动作偏向集中展示" />
+          <p className="function-explain">用途：逐只股票看成本、实时行情和风险级别；左侧色条越偏红，越需要优先复盘。行情来自后端 Eastmoney 只读接口，失败时自动保留成本口径。</p>
+          <div className="holding-board-list">
+            {positions.map((position) => {
+              const dailyPct = position.dailyPctChange === null || position.dailyPctChange === undefined ? null : Number(position.dailyPctChange);
+              const pnl = position.unrealizedPnl === null ? null : Number(position.unrealizedPnl);
+              return (
+                <div className={`holding-board-row risk-${position.riskLevel}`} key={position.id}>
+                  <div className="holding-symbol"><strong>{position.symbol}</strong><span>{position.name}</span></div>
+                  <div className="holding-themes">{position.themeTags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+                  <div className="holding-money">
+                    <strong>{position.marketValue === null ? formatMoney(position.quantity * Number(position.costPrice)) : formatMoney(Number(position.marketValue))}</strong>
+                    <span>{position.quantity} 股 @ 成本 ¥{Number(position.costPrice).toFixed(2)}</span>
+                  </div>
+                  <div className="quote-cell">
+                    <strong>{position.latestPrice === null ? '等待行情' : `¥${Number(position.latestPrice).toFixed(2)}`}</strong>
+                    <span className={dailyPct === null ? 'quote-flat' : dailyPct >= 0 ? 'quote-up' : 'quote-down'}>
+                      {dailyPct === null ? '未接入' : `${dailyPct >= 0 ? '+' : ''}${dailyPct.toFixed(2)}%`}
+                    </span>
+                  </div>
+                  <div className="quote-cell">
+                    <strong className={pnl === null ? 'quote-flat' : pnl >= 0 ? 'quote-up' : 'quote-down'}>{pnl === null ? '—' : formatMoney(pnl)}</strong>
+                    <span>{position.quoteSource === 'eastmoney' ? 'Eastmoney Live' : 'Fallback'}</span>
+                  </div>
+                  <div className="holding-action"><span>{position.actionBias}</span><small>{position.riskLevel} risk</small></div>
+                </div>
+              );
+            })}
+          </div>
+        </article>
+
+        <article className="glass-card exposure-tower-card">
+          <CardHeader icon={<Layers3 />} title="Fund Exposure Tower" subtitle="基金主题暴露按权重排序" />
+          <p className="function-explain">用途：看基金仓位是否过度集中在单一方向，辅助判断今天是继续拿、等回踩还是降低加仓优先级。</p>
+          <div className="exposure-tower">
+            {topFundExposures.map((exposure) => (
+              <div className="tower-row" key={exposure.id}>
+                <div><strong>{exposure.name}</strong><span>{exposure.theme}</span></div>
+                <div className="tower-track"><i style={{ width: `${Math.min(Number(exposure.weightPercent ?? 0) * 3, 100)}%` }} /></div>
+                <em>{Number(exposure.weightPercent ?? 0).toFixed(2)}%</em>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="research-grid">
+        <article className="glass-card research-note-card">
+          <CardHeader icon={<Radar />} title={daily.title} subtitle="14:30 盘中复盘 / 盘前计划 / 收盘验证" />
+          <p className="function-explain">用途：把行情、主题强弱和持仓动作写成每日复盘笔记，后续用于验证昨天判断有没有失效。</p>
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
           <div className="research-section-list">
             {daily.sections.map((section) => (
               <div className="research-section" key={section.code}>
@@ -1753,6 +2418,18 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
       </article>
 
       <section className="research-grid portfolio-context-grid">
+        <article className="glass-card calibration-card">
+          <CardHeader icon={<Gauge />} title="Portfolio Calibration" subtitle="已修正个股仓位口径，不再使用 3.3%" />
+          <div className="portfolio-stat-row">
+            <div><span>股票成本</span><strong>¥{formatNumber(calibration.stockCostValue)}</strong></div>
+            <div><span>已知组合</span><strong>¥{formatNumber(calibration.knownPortfolioValue)}</strong></div>
+            <div><span>个股权重</span><strong>{calibration.stockWeightPercent.toFixed(2)}%</strong></div>
+          </div>
+          <p className="calibration-note">基金仍是主仓（{calibration.fundWeightPercent.toFixed(2)}%），最大基金主题为 {calibration.highestFundTheme} / {calibration.highestFundWeightPercent.toFixed(2)}%。</p>
+        </article>
+      </section>
+
+      <section className="research-grid portfolio-context-grid">
         <article className="glass-card">
           <CardHeader icon={<CandlestickChart />} title={`${context.owner} 股票持仓`} subtitle={`${context.accountScope} · ${context.stockAccount.positionLevel}`} />
           <div className="portfolio-stat-row">
@@ -1779,8 +2456,8 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
             {topFundExposures.map((exposure) => (
               <div className="fund-exposure-row" key={`${exposure.name}-${exposure.theme}`}>
                 <div><strong>{exposure.name}</strong><span>{exposure.theme}</span></div>
-                <div className="exposure-bar"><i style={{ width: `${Math.min(exposure.weightPercent * 2.4, 100)}%` }} /></div>
-                <em>{exposure.weightPercent.toFixed(2)}%</em>
+                <div className="exposure-bar"><i style={{ width: `${Math.min(Number(exposure.weightPercent ?? 0) * 2.4, 100)}%` }} /></div>
+                <em>{Number(exposure.weightPercent ?? 0).toFixed(2)}%</em>
               </div>
             ))}
           </div>
@@ -1791,14 +2468,24 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
       </section>
 
       <article className="glass-card risk-flag-panel">
+<<<<<<< HEAD
         <CardHeader icon={<ShieldCheck />} title="组合风险标记" subtitle="后续所有建议都必须先通过这些组合约束" />
+=======
+        <CardHeader icon={<ShieldCheck />} title="Portfolio Risk Flags" subtitle="后续所有建议都必须先通过这些组合约束" />
+        <p className="function-explain">用途：集中显示今天最不能忽略的风险约束；任何加仓建议都应该先被这里过滤一遍。</p>
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
         <div className="risk-flag-grid">
           {context.riskFlags.map((flag) => <div className="risk-flag" key={flag}><span className="pulse warning" />{flag}</div>)}
         </div>
       </article>
 
       <article className="glass-card theme-exposure-panel">
+<<<<<<< HEAD
         <CardHeader icon={<Waves />} title="主题暴露矩阵" subtitle="把股票和基金暴露合并成可操作的主题视图" />
+=======
+        <CardHeader icon={<Waves />} title="Theme Exposure Matrix" subtitle="把股票和基金暴露合并成可操作的主题视图" />
+        <p className="function-explain">用途：把股票和基金放到同一个主题坐标系里，快速识别 AI、机器人、通信、黄金等方向的真实暴露。</p>
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
         <div className="theme-exposure-grid">
           {props.data.themeExposures.map((exposure) => (
             <div className="theme-exposure-card" key={`${exposure.theme}-${exposure.source}`}>
@@ -1858,6 +2545,18 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
         </article>
       </section>
 
+      <article className="glass-card block-guide-panel">
+        <CardHeader icon={<Table2 />} title="How to Read This Page" subtitle="每个模块该怎么看、解决什么问题" />
+        <div className="block-guide-grid">
+          {blockGuides.map((guide) => (
+            <div className="block-guide-card" key={guide.title}>
+              <strong>{guide.title}</strong>
+              <p>{guide.desc}</p>
+            </div>
+          ))}
+        </div>
+      </article>
+
       <article className="glass-card">
         <CardHeader icon={<Table2 />} title="投研工作流" subtitle="吸收成熟投研产品工作流，但围绕 Ricki 的 A 股持仓重构" />
         <div className="playbook-grid">
@@ -1868,6 +2567,129 @@ function ResearchView(props: { readonly data: ResearchData; readonly isLive: boo
               <div>{playbook.output.map((item) => <span key={item}>{item}</span>)}</div>
             </div>
           ))}
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function TradingDecisionView(props: { readonly data: PortfolioTradingDecision; readonly isLive: boolean }): React.ReactElement {
+  const bucketRows = [
+    ['风控观察', props.data.actionBuckets.riskControl],
+    ['禁止补仓', props.data.actionBuckets.avoidAdd],
+    ['止盈观察', props.data.actionBuckets.takeProfit],
+    ['强势再评估', props.data.actionBuckets.addOnStrength],
+    ['持有观察', props.data.actionBuckets.watch],
+    ['继续持有', props.data.actionBuckets.hold],
+  ] as const;
+
+  return (
+    <div className="view-stack">
+      <section className="hero-card trading-hero-card">
+        <div>
+          <div className="eyebrow"><ListChecks size={14} /> {props.isLive ? 'Live Decision Engine' : 'Preview Decision Engine'}</div>
+          <h2>{props.data.marketRegime.label}：{props.data.summary.primaryAction}</h2>
+          <p>根据 Ricki 当前持仓、成本、实时行情、指数/主题强弱，输出每只股票“补仓/减仓/持有/风控”的可执行动作。当前模块只读，不接券商，不自动下单。</p>
+        </div>
+        <div className="hero-orb"><ShieldCheck size={52} /></div>
+      </section>
+
+      <section className="metric-grid">
+        <MetricCard icon={<Gauge />} label="市场状态" value={props.data.marketRegime.label} helper={`score ${props.data.marketRegime.score}`} tone="amber" />
+        <MetricCard icon={<CandlestickChart />} label="股票市值" value={formatMoney(props.data.summary.totalMarketValue)} helper={`成本 ${formatMoney(props.data.summary.totalCostValue)}`} tone="cyan" />
+        <MetricCard icon={<Activity />} label="浮盈亏" value={formatMoney(props.data.summary.totalUnrealizedPnl)} helper={`${props.data.summary.totalUnrealizedPnlPercent}%`} tone="violet" />
+        <MetricCard icon={<ShieldCheck />} label="组合风险" value={props.data.summary.riskLevel.toUpperCase()} helper="先风控后交易" tone="green" />
+      </section>
+
+      <section className="portfolio-command-grid">
+        <article className="glass-card decision-lane-card">
+          <CardHeader icon={<ListChecks />} title="Action Buckets" subtitle="把每只持仓落到固定动作队列" />
+          <div className="decision-lanes">
+            {bucketRows.map(([label, items]) => (
+              <div className="decision-lane" key={label}>
+                <span>{label}</span>
+                <strong>{items.length}</strong>
+                <small>{items[0] ?? '暂无触发'}</small>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="glass-card">
+          <CardHeader icon={<Radar />} title="Market Evidence" subtitle="指数/主题给出的交易环境证据" />
+          <div className="research-section-list">
+            {props.data.marketRegime.reasons.map((reason) => <div className="research-section" key={reason}><strong>Regime</strong><span>{reason}</span></div>)}
+            {props.data.nextTriggers.map((trigger) => <div className="research-section" key={trigger}><strong>Trigger</strong><span>{trigger}</span></div>)}
+          </div>
+        </article>
+      </section>
+
+      <section className="portfolio-command-grid">
+        <article className="glass-card intraday-plan-card">
+          <CardHeader icon={<Zap />} title="Intraday Action Plan" subtitle="现在做什么、等什么、绝对避免什么" />
+          <div className="intraday-plan-grid">
+            {[
+              ['Do Now', props.data.intradayPlan.doNow],
+              ['Wait For', props.data.intradayPlan.waitFor],
+              ['Avoid', props.data.intradayPlan.avoid],
+              ['Emergency', props.data.intradayPlan.emergency],
+            ].map(([label, items]) => (
+              <div className="intraday-plan-column" key={label as string}>
+                <strong>{label as string}</strong>
+                {(items as readonly string[]).slice(0, 4).map((item) => <span key={item}>{item}</span>)}
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="glass-card price-trigger-card">
+          <CardHeader icon={<Table2 />} title="Price Trigger Matrix" subtitle="每只持仓的风控线、确认线和观察价" />
+          <div className="price-trigger-list">
+            {props.data.decisions.map((decision) => (
+              <div className="price-trigger-row" key={decision.symbol}>
+                <strong>{decision.symbol} {decision.name}</strong>
+                <span>当前 {formatPlanPrice(decision.pricePlan.currentPrice)}</span>
+                <span>保护 {formatPlanPrice(decision.pricePlan.profitProtectPrice ?? decision.pricePlan.stopLossPrice)}</span>
+                <span>观察 {formatPlanPrice(decision.pricePlan.addWatchPrice)}</span>
+                <span>确认 {formatPlanPrice(decision.pricePlan.strengthConfirmPrice)}</span>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <article className="glass-card holdings-board">
+        <CardHeader icon={<CandlestickChart />} title="Position Decisions" subtitle="每只股票的实时动作、理由和触发条件" />
+        <div className="holding-board-list">
+          {props.data.decisions.map((decision) => {
+            const dailyPct = decision.dailyPctChange === null ? null : Number(decision.dailyPctChange);
+            const pnl = decision.unrealizedPnl === null ? null : Number(decision.unrealizedPnl);
+            return (
+              <div className={`holding-board-row risk-${decision.riskLevel}`} key={decision.symbol}>
+                <div className="holding-symbol"><strong>{decision.symbol}</strong><span>{decision.name}</span></div>
+                <div className="holding-money">
+                  <strong>{decision.marketValue === null ? '—' : formatMoney(decision.marketValue)}</strong>
+                  <span>{decision.quantity} 股 @ 成本 ¥{Number(decision.costPrice).toFixed(2)}</span>
+                </div>
+                <div className="quote-cell">
+                  <strong>{decision.latestPrice === null ? '等待行情' : `¥${Number(decision.latestPrice).toFixed(2)}`}</strong>
+                  <span className={dailyPct === null ? 'quote-flat' : dailyPct >= 0 ? 'quote-up' : 'quote-down'}>{dailyPct === null ? '未接入' : `${dailyPct >= 0 ? '+' : ''}${dailyPct.toFixed(2)}%`}</span>
+                </div>
+                <div className="quote-cell">
+                  <strong className={pnl === null ? 'quote-flat' : pnl >= 0 ? 'quote-up' : 'quote-down'}>{pnl === null ? '—' : formatMoney(pnl)}</strong>
+                  <span>{decision.unrealizedPnlPercent ?? '0.00'}%</span>
+                </div>
+                <div className="holding-action"><span>{decision.actionLabel}</span><small>{decision.reasons[0]}</small></div>
+              </div>
+            );
+          })}
+        </div>
+      </article>
+
+      <article className="glass-card risk-flag-panel">
+        <CardHeader icon={<ShieldCheck />} title="Safety Notes" subtitle="当前阶段只做辅助决策，不做自动交易" />
+        <div className="risk-flag-grid">
+          {props.data.disclaimers.map((item) => <div className="risk-flag" key={item}><span className="pulse warning" />{item}</div>)}
         </div>
       </article>
     </div>

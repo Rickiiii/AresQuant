@@ -86,6 +86,40 @@ export interface FinancialFactorRawData {
   readonly profitGrowth?: number;
 }
 
+export type MarketSnapshotCategory = 'index' | 'theme';
+
+export interface MarketSnapshotRequest {
+  readonly code: string;
+  readonly name: string;
+  readonly category: MarketSnapshotCategory;
+}
+
+export interface MarketSnapshotRawData {
+  readonly code: string;
+  readonly name: string;
+  readonly category: MarketSnapshotCategory;
+  readonly latestPrice: number;
+  readonly change: number;
+  readonly pctChange: number;
+  readonly amount: number;
+  readonly source: 'eastmoney' | 'mock';
+}
+
+export interface StockQuoteRawData {
+  readonly symbol: string;
+  readonly name: string;
+  readonly latestPrice: number;
+  readonly change: number;
+  readonly pctChange: number;
+  readonly open: number;
+  readonly high: number;
+  readonly low: number;
+  readonly preClose: number;
+  readonly volume: number;
+  readonly amount: number;
+  readonly source: 'eastmoney' | 'mock';
+}
+
 export interface DataSyncResult {
   readonly taskName: string;
   readonly dataType: string;

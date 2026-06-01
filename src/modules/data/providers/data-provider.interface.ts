@@ -4,6 +4,9 @@ import type {
   FinancialFactorRawData,
   IndexDailyBarRawData,
   LimitPriceRawData,
+  MarketSnapshotRawData,
+  MarketSnapshotRequest,
+  StockQuoteRawData,
   StockRawData,
   SuspensionRawData,
   TradingCalendarRawData,
@@ -20,4 +23,6 @@ export interface DataProvider {
   getSuspensions(tradeDate: string): Promise<readonly SuspensionRawData[]>;
   getAdjFactors(symbol: string, startDate: string, endDate: string): Promise<readonly AdjFactorRawData[]>;
   getFinancialFactors(symbol: string): Promise<readonly FinancialFactorRawData[]>;
+  getStockQuotes(symbols: readonly string[]): Promise<readonly StockQuoteRawData[]>;
+  getMarketSnapshots(items: readonly MarketSnapshotRequest[]): Promise<readonly MarketSnapshotRawData[]>;
 }

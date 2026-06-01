@@ -7,6 +7,9 @@ import type {
   FinancialFactorRawData,
   IndexDailyBarRawData,
   LimitPriceRawData,
+  MarketSnapshotRawData,
+  MarketSnapshotRequest,
+  StockQuoteRawData,
   StockRawData,
   SuspensionRawData,
   TradingCalendarRawData,
@@ -24,12 +27,30 @@ type EastmoneyStockRow = {
   readonly f18?: number | string;
 };
 
+type EastmoneyQuoteRow = EastmoneyStockRow & {
+  readonly f2?: number | string;
+  readonly f3?: number | string;
+  readonly f4?: number | string;
+  readonly f5?: number | string;
+  readonly f6?: number | string;
+  readonly f15?: number | string;
+  readonly f16?: number | string;
+  readonly f17?: number | string;
+};
+
 class NonRetriableEastmoneyRequestError extends Error {}
 
 type EastmoneyListPayload = {
   readonly rc?: number;
   readonly data?: {
     readonly diff?: readonly EastmoneyStockRow[];
+  } | null;
+};
+
+type EastmoneyQuotePayload = {
+  readonly rc?: number;
+  readonly data?: {
+    readonly diff?: readonly EastmoneyQuoteRow[];
   } | null;
 };
 
@@ -64,7 +85,11 @@ export class EastmoneyDataProvider implements DataProvider {
   private readonly baseListUrl = 'https://push2.eastmoney.com/api/qt/clist/get';
   private readonly baseKlineUrl = 'https://push2his.eastmoney.com/api/qt/stock/kline/get';
   private readonly baseSnapshotUrl = 'https://push2.eastmoney.com/api/qt/clist/get';
+<<<<<<< HEAD
   private readonly fetcher: FetchLike;
+=======
+  private readonly baseQuoteUrl = 'https://push2.eastmoney.com/api/qt/ulist.np/get';
+>>>>>>> a1109d3 (feat(portfolio): add personal portfolio context)
 
   constructor(@Optional() @Inject(EASTMONEY_FETCHER) fetcher?: FetchLike) {
     this.fetcher = fetcher ?? fetch;
@@ -146,6 +171,39 @@ export class EastmoneyDataProvider implements DataProvider {
     }];
   }
 
+  async getStockQuotes(symbols: readonly string[]): Promise<readonly StockQuoteRawData[]> {
+    const uniqueSymbols = Array.from(new Set(symbols));
+    if (uniqueSymbols.length === 0) {
+      return [];
+    }
+
+    const payload = await this.getJson<EastmoneyQuotePayload>(this.buildQuoteListUrl(uniqueSymbols));
+    if (!Array.isArray(payload.data?.diff)) {
+      throw new Error('Invalid Eastmoney quote response');
+    }
+    const symbolSet = new Set(uniqueSymbols);
+    return payload.data.diff
+      .filter((row) => row.f12 !== undefined && symbolSet.has(row.f12))
+      .map((row) => mapQuote(row))
+      .filter((row): row is StockQuoteRawData => row !== undefined);
+  }
+
+  async getMarketSnapshots(items: readonly MarketSnapshotRequest[]): Promise<readonly MarketSnapshotRawData[]> {
+    const uniqueItems = uniqueMarketSnapshotItems(items);
+    if (uniqueItems.length === 0) {
+      return [];
+    }
+
+    const payload = await this.getJson<EastmoneyQuotePayload>(this.buildMarketSnapshotUrl(uniqueItems));
+    if (!Array.isArray(payload.data?.diff)) {
+      throw new Error('Invalid Eastmoney market snapshot response');
+    }
+    const itemByCompactCode = new Map(uniqueItems.map((item) => [compactMarketCode(item.code), item]));
+    return payload.data.diff
+      .map((row) => mapMarketSnapshot(row, itemByCompactCode.get(row.f12 ?? '')))
+      .filter((row): row is MarketSnapshotRawData => row !== undefined);
+  }
+
   private async getJson<T>(url: string): Promise<T> {
     let lastError: unknown;
 
@@ -214,6 +272,28 @@ export class EastmoneyDataProvider implements DataProvider {
       fields: 'f12,f14,f18',
     });
     return `${this.baseListUrl}?${params.toString()}`;
+  }
+
+  private buildQuoteListUrl(symbols: readonly string[]): string {
+    const params = new URLSearchParams({
+      secids: symbols.map(toSecId).join(','),
+      ut: 'bd1d9ddb04089700cf9c27f6f7426281',
+      fltt: '2',
+      invt: '2',
+      fields: 'f12,f14,f2,f3,f4,f5,f6,f15,f16,f17,f18',
+    });
+    return `${this.baseQuoteUrl}?${params.toString()}`;
+  }
+
+  private buildMarketSnapshotUrl(items: readonly MarketSnapshotRequest[]): string {
+    const params = new URLSearchParams({
+      secids: items.map((item) => toMarketSecId(item.code)).join(','),
+      ut: 'bd1d9ddb04089700cf9c27f6f7426281',
+      fltt: '2',
+      invt: '2',
+      fields: 'f12,f14,f2,f3,f4,f6',
+    });
+    return `${this.baseQuoteUrl}?${params.toString()}`;
   }
 
   private buildSnapshotUrl(_symbol: string): string {
@@ -321,6 +401,74 @@ function mapLimitPrice(row: EastmoneyStockRow, tradeDate: string): LimitPriceRaw
   };
 }
 
+function mapQuote(row: EastmoneyQuoteRow): StockQuoteRawData | undefined {
+  if (row.f12 === undefined || row.f14 === undefined) {
+    return undefined;
+  }
+  const latestPrice = toOptionalNumber(row.f2);
+  const change = toOptionalNumber(row.f4);
+  const pctChange = toOptionalNumber(row.f3);
+  const open = toOptionalNumber(row.f17);
+  const high = toOptionalNumber(row.f15);
+  const low = toOptionalNumber(row.f16);
+  const preClose = toOptionalNumber(row.f18);
+  const volume = toOptionalNumber(row.f5);
+  const amount = toOptionalNumber(row.f6);
+  if (
+    latestPrice === undefined
+    || change === undefined
+    || pctChange === undefined
+    || open === undefined
+    || high === undefined
+    || low === undefined
+    || preClose === undefined
+    || volume === undefined
+    || amount === undefined
+  ) {
+    return undefined;
+  }
+  return {
+    symbol: row.f12,
+    name: row.f14,
+    latestPrice,
+    change,
+    pctChange,
+    open,
+    high,
+    low,
+    preClose,
+    volume,
+    amount,
+    source: 'eastmoney',
+  };
+}
+
+function mapMarketSnapshot(
+  row: EastmoneyQuoteRow,
+  request: MarketSnapshotRequest | undefined,
+): MarketSnapshotRawData | undefined {
+  if (row.f12 === undefined || request === undefined) {
+    return undefined;
+  }
+  const latestPrice = toOptionalNumber(row.f2);
+  const change = toOptionalNumber(row.f4);
+  const pctChange = toOptionalNumber(row.f3);
+  const amount = toOptionalNumber(row.f6);
+  if (latestPrice === undefined || change === undefined || pctChange === undefined || amount === undefined) {
+    return undefined;
+  }
+  return {
+    code: request.code,
+    name: request.name || row.f14 || request.code,
+    category: request.category,
+    latestPrice,
+    change,
+    pctChange,
+    amount,
+    source: 'eastmoney',
+  };
+}
+
 function limitRatioForStock(symbol: string, name: string): number {
   if (name.includes('ST')) {
     return 0.05;
@@ -402,6 +550,34 @@ function toSecId(symbol: string): string {
 function toIndexSecId(indexCode: string): string {
   const compact = indexCode.split('.')[0];
   return `${indexCode.endsWith('.SZ') ? '0' : '1'}.${compact}`;
+}
+
+function toMarketSecId(code: string): string {
+  const compact = compactMarketCode(code);
+  if (code.endsWith('.SZ')) {
+    return `0.${compact}`;
+  }
+  if (code.endsWith('.SH')) {
+    return `1.${compact}`;
+  }
+  if (compact.startsWith('6') || compact.startsWith('5') || compact.startsWith('9')) {
+    return `1.${compact}`;
+  }
+  return `0.${compact}`;
+}
+
+function compactMarketCode(code: string): string {
+  return code.split('.')[0] ?? code;
+}
+
+function uniqueMarketSnapshotItems(items: readonly MarketSnapshotRequest[]): readonly MarketSnapshotRequest[] {
+  const itemByCode = new Map<string, MarketSnapshotRequest>();
+  for (const item of items) {
+    if (!itemByCode.has(item.code)) {
+      itemByCode.set(item.code, item);
+    }
+  }
+  return [...itemByCode.values()];
 }
 
 function normalizeDate(value: string): string {

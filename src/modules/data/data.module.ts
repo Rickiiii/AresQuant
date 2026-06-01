@@ -68,6 +68,8 @@ import { DataController } from './presentation/data.controller';
     DataSyncService,
     DataQualityService,
     AdjustmentService,
+    EastmoneyDataProvider,
+    DATA_PROVIDER,
     DAILY_BAR_REPOSITORY,
     STOCK_REPOSITORY,
     TRADING_CALENDAR_REPOSITORY,
