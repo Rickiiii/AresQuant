@@ -117,6 +117,99 @@ describe('PortfolioController', () => {
     expect(upsertStockHolding).toHaveBeenCalledWith(expect.objectContaining({ symbol: '300750' }), 'Ricki');
   });
 
+  it('looks up stock quotes for holding editor autofill', async () => {
+    const lookupStockQuotes = jest.fn().mockResolvedValue([{ symbol: '002050', name: '三花智控' }]);
+    const moduleRef = await Test.createTestingModule({
+      controllers: [PortfolioController],
+      providers: [
+        { provide: PortfolioContextService, useValue: {} },
+        { provide: PortfolioService, useValue: { getContext: jest.fn(), listPositions: jest.fn(), listFundExposures: jest.fn(), getTradingDecision: jest.fn(), lookupStockQuotes } },
+      ],
+    }).compile();
+    const controller = moduleRef.get(PortfolioController);
+
+    await expect(controller.quotes('002050,600366')).resolves.toMatchObject({
+      success: true,
+      data: [{ symbol: '002050', name: '三花智控' }],
+    });
+    expect(lookupStockQuotes).toHaveBeenCalledWith(['002050', '600366']);
+  });
+
+  it('looks up fund quotes for fund editor autofill', async () => {
+    const lookupFundQuotes = jest.fn().mockResolvedValue([{ fundCode: '161725', name: '招商中证白酒指数(LOF)A' }]);
+    const moduleRef = await Test.createTestingModule({
+      controllers: [PortfolioController],
+      providers: [
+        { provide: PortfolioContextService, useValue: {} },
+        { provide: PortfolioService, useValue: { getContext: jest.fn(), listPositions: jest.fn(), listFundExposures: jest.fn(), getTradingDecision: jest.fn(), lookupStockQuotes: jest.fn(), lookupFundQuotes } },
+      ],
+    }).compile();
+    const controller = moduleRef.get(PortfolioController);
+
+    await expect(controller.fundQuotes('161725')).resolves.toMatchObject({
+      success: true,
+      data: [{ fundCode: '161725', name: '招商中证白酒指数(LOF)A' }],
+    });
+    expect(lookupFundQuotes).toHaveBeenCalledWith(['161725']);
+  });
+
+  it('returns advice backtest replay', async () => {
+    const getAdviceBacktest = jest.fn().mockResolvedValue({
+      generatedAt: '2026-06-05T00:00:00.000Z',
+      startDate: '20260506',
+      endDate: '20260605',
+      dataStatus: '已使用真实日线做建议复盘。',
+      summaries: [],
+      items: [],
+    });
+    const moduleRef = await Test.createTestingModule({
+      controllers: [PortfolioController],
+      providers: [
+        { provide: PortfolioContextService, useValue: {} },
+        { provide: PortfolioService, useValue: { getContext: jest.fn(), listPositions: jest.fn(), listFundExposures: jest.fn(), getTradingDecision: jest.fn(), getAdviceBacktest, lookupStockQuotes: jest.fn(), lookupFundQuotes: jest.fn() } },
+      ],
+    }).compile();
+    const controller = moduleRef.get(PortfolioController);
+
+    await expect(controller.adviceBacktest('45')).resolves.toMatchObject({
+      success: true,
+      data: { dataStatus: expect.stringContaining('真实日线') },
+    });
+    expect(getAdviceBacktest).toHaveBeenCalledWith(45);
+  });
+
+  it('gets and updates investor preference config', async () => {
+    const preference = {
+      horizon: '1-3 年长线持有',
+      coreView: '长期看好机器人',
+      roboticsMaxWeightPercent: 35,
+      singleStockMaxDrawdownPercent: 18,
+      portfolioMaxDrawdownPercent: 10,
+      coreHoldings: ['拓普集团'],
+      satelliteHoldings: ['巨轮智能'],
+      rebalanceCadence: '每月复盘',
+      cashPlan: '大跌补',
+      trimOrder: ['绿电'],
+    };
+    const getInvestorPreference = jest.fn().mockReturnValue(preference);
+    const updateInvestorPreference = jest.fn().mockReturnValue({ ...preference, roboticsMaxWeightPercent: 40 });
+    const moduleRef = await Test.createTestingModule({
+      controllers: [PortfolioController],
+      providers: [
+        { provide: PortfolioContextService, useValue: {} },
+        { provide: PortfolioService, useValue: { getContext: jest.fn(), listPositions: jest.fn(), listFundExposures: jest.fn(), getTradingDecision: jest.fn(), lookupStockQuotes: jest.fn(), lookupFundQuotes: jest.fn(), getInvestorPreference, updateInvestorPreference } },
+      ],
+    }).compile();
+    const controller = moduleRef.get(PortfolioController);
+
+    await expect(controller.investorPreference()).resolves.toMatchObject({ success: true, data: preference });
+    await expect(controller.updateInvestorPreference({ ...preference, roboticsMaxWeightPercent: 40 })).resolves.toMatchObject({
+      success: true,
+      data: { roboticsMaxWeightPercent: 40 },
+    });
+    expect(updateInvestorPreference).toHaveBeenCalledWith(expect.objectContaining({ roboticsMaxWeightPercent: 40 }));
+  });
+
   it('upserts Ricki fund holdings', async () => {
     const upsertFundHolding = jest.fn().mockResolvedValue({ owner: 'Ricki', fundAccount: { exposures: [{ name: '半导体 ETF' }] } });
     const moduleRef = await Test.createTestingModule({

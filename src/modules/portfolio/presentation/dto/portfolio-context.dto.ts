@@ -1,7 +1,8 @@
 import { IsIn, IsNumber, IsOptional, IsString, Matches, Min } from 'class-validator';
-import type { PortfolioAction } from '../../domain/portfolio.types';
+import type { PortfolioAction, PortfolioHoldingStage } from '../../domain/portfolio.types';
 
 const PORTFOLIO_ACTIONS = ['hold', 'add', 'build', 'watch', 'take_profit', 'risk_control'] as const;
+const HOLDING_STAGES = ['new', 'holding', 'long_term_core'] as const;
 
 export class PortfolioStockPositionDto {
   readonly symbol!: string;
@@ -11,6 +12,8 @@ export class PortfolioStockPositionDto {
   readonly latestPrice!: number | null;
   readonly marketValue!: number | null;
   readonly unrealizedPnl!: number | null;
+  readonly buyDate!: string | null;
+  readonly holdingStage!: PortfolioHoldingStage;
   readonly theme!: string;
   readonly themeTags!: readonly string[];
   readonly thesis!: string;
@@ -37,6 +40,14 @@ export class UpsertPortfolioStockHoldingDto {
   @IsNumber()
   @Min(0)
   readonly latestPrice?: number | null;
+
+  @IsOptional()
+  @IsString()
+  readonly buyDate?: string | null;
+
+  @IsOptional()
+  @IsIn(HOLDING_STAGES)
+  readonly holdingStage?: PortfolioHoldingStage;
 
   @IsString()
   readonly theme!: string;

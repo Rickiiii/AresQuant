@@ -2,8 +2,10 @@ import { Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { DashboardService } from '@/modules/dashboard/application/dashboard.service';
 import { PortfolioContextService } from '@/modules/portfolio/application/portfolio-context.service';
+import { PortfolioService } from '@/modules/portfolio/application/portfolio.service';
 import { PrismaService } from '@/database/prisma.service';
-import type { PortfolioContextDto, PortfolioThemeExposureSummaryDto } from '@/modules/portfolio/presentation/dto/portfolio-context.dto';
+import type { PortfolioContextDto as EditablePortfolioContextDto, PortfolioThemeExposureSummaryDto } from '@/modules/portfolio/presentation/dto/portfolio-context.dto';
+import type { PortfolioContextDto as LivePortfolioContextDto } from '@/modules/portfolio/presentation/dto/portfolio.dto';
 import type { DashboardBacktestListItemDto } from '@/modules/dashboard/presentation/dto/dashboard-backtest.dto';
 import type { DashboardDataCenterSummaryDto } from '@/modules/dashboard/presentation/dto/dashboard-data-center.dto';
 import type { DashboardOverviewDto } from '@/modules/dashboard/presentation/dto/dashboard-overview.dto';
@@ -26,6 +28,7 @@ export class ResearchService {
   constructor(
     @Optional() private readonly dashboardService?: DashboardService,
     @Optional() private readonly portfolioContextService?: PortfolioContextService,
+    @Optional() private readonly portfolioService?: PortfolioService,
     @Optional() private readonly prisma?: PrismaService,
   ) {}
 
@@ -50,7 +53,12 @@ export class ResearchService {
   }
 
   async getPortfolioContext(): Promise<ResearchPortfolioContextDto> {
-    const context = await this.loadPortfolioContext();
+    const liveContext = await this.loadLivePortfolioContext();
+    if (liveContext !== null) {
+      return toLiveResearchPortfolioContext(liveContext);
+    }
+
+    const context = await this.loadEditablePortfolioContext();
     if (context === null) {
       return PORTFOLIO_CONTEXT;
     }
@@ -58,7 +66,7 @@ export class ResearchService {
   }
 
   async listThemeExposures(): Promise<readonly ResearchThemeExposureSummaryDto[]> {
-    const context = await this.loadPortfolioContext();
+    const context = await this.loadEditablePortfolioContext();
     if (context === null) {
       return THEME_EXPOSURES;
     }
@@ -163,7 +171,19 @@ export class ResearchService {
     }
   }
 
-  private async loadPortfolioContext(): Promise<PortfolioContextDto | null> {
+  private async loadLivePortfolioContext(): Promise<LivePortfolioContextDto | null> {
+    if (this.portfolioService === undefined) {
+      return null;
+    }
+
+    try {
+      return await this.portfolioService.getContext();
+    } catch {
+      return null;
+    }
+  }
+
+  private async loadEditablePortfolioContext(): Promise<EditablePortfolioContextDto | null> {
     if (this.portfolioContextService === undefined) {
       return null;
     }
@@ -344,7 +364,7 @@ function stockName(context: ResearchLiveContext, symbol: string): string {
   return context.stocksBySymbol.get(symbol)?.name ?? symbol;
 }
 
-function toResearchPortfolioContext(context: PortfolioContextDto): ResearchPortfolioContextDto {
+function toResearchPortfolioContext(context: EditablePortfolioContextDto): ResearchPortfolioContextDto {
   return {
     owner: context.owner,
     accountScope: context.accountScope,
@@ -377,6 +397,46 @@ function toResearchPortfolioContext(context: PortfolioContextDto): ResearchPortf
     watchThemes: context.watchThemes,
     riskFlags: context.riskFlags,
     actionPolicy: context.actionPolicy,
+  };
+}
+
+function toLiveResearchPortfolioContext(context: LivePortfolioContextDto): ResearchPortfolioContextDto {
+  return {
+    owner: context.owner,
+    accountScope: context.accountScope,
+    stockAccount: {
+      positionLevel: `股票 ${context.summary.stockWeightPercent}% / 基金 ${context.summary.fundWeightPercent}%`,
+      positions: context.positions.map((position) => ({
+        symbol: position.symbol,
+        name: position.name,
+        quantity: position.quantity,
+        costPrice: Number(position.costPrice),
+        latestPrice: position.latestPrice === null ? null : Number(position.latestPrice),
+        marketValue: position.marketValue === null ? null : Number(position.marketValue),
+        unrealizedPnl: position.unrealizedPnl === null ? null : Number(position.unrealizedPnl),
+        theme: position.themeTags.join(' / '),
+        thesis: position.thesisSummary ?? '等待补充持仓逻辑。',
+        actionBias: position.actionBias as ResearchPortfolioContextDto['stockAccount']['positions'][number]['actionBias'],
+      })),
+    },
+    fundAccount: {
+      totalAssetValue: Number(context.account.totalAssetValue ?? context.summary.knownPortfolioValue),
+      visibleAssetValue: Number(context.account.visibleAssetValue ?? context.summary.visibleFundValue),
+      exposures: context.fundExposures.map((exposure) => ({
+        name: exposure.name,
+        theme: exposure.theme,
+        amount: Number(exposure.amount),
+        weightPercent: exposure.weightPercent === null ? 0 : Number(exposure.weightPercent),
+        actionBias: exposure.actionBias as ResearchPortfolioContextDto['fundAccount']['exposures'][number]['actionBias'],
+      })),
+    },
+    watchThemes: context.watchThemes.map((theme) => theme.name),
+    riskFlags: context.riskFlags,
+    actionPolicy: {
+      allowedActions: ['hold', 'add', 'build', 'watch', 'take_profit', 'risk_control'],
+      defaultBias: 'watch',
+      rules: context.actionRules,
+    },
   };
 }
 

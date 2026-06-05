@@ -48,8 +48,12 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-pnpm start:dev &
-API_PID=$!
+if curl -fsS http://localhost:3000/docs >/dev/null 2>&1; then
+  echo "Existing API detected on http://localhost:3000; reusing it."
+else
+  pnpm start:dev &
+  API_PID=$!
+fi
 
 echo "Waiting for API on http://localhost:3000 ..."
 for _ in $(seq 1 60); do

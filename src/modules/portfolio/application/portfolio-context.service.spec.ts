@@ -57,6 +57,8 @@ describe('PortfolioContextService', () => {
     const repository: PortfolioContextRepository = {
       findPrimaryContext: jest.fn().mockResolvedValue(null),
       upsertPrimaryContext: jest.fn(),
+      findInvestorPreference: jest.fn().mockResolvedValue(null),
+      upsertInvestorPreference: jest.fn(),
     };
     const service = new PortfolioContextService(repository);
 
@@ -266,5 +268,7 @@ function createRepository(): PortfolioContextRepository {
       ],
     }),
     upsertPrimaryContext: jest.fn(async (input) => input),
+    findInvestorPreference: jest.fn().mockResolvedValue(null),
+    upsertInvestorPreference: jest.fn(async (input) => input),
   };
 }

@@ -52,6 +52,12 @@ export class PortfolioPositionDto {
   unrealizedPnl!: string | null;
 
   @ApiPropertyOptional({ nullable: true })
+  buyDate!: string | null;
+
+  @ApiProperty({ enum: ['new', 'holding', 'long_term_core'] })
+  holdingStage!: 'new' | 'holding' | 'long_term_core';
+
+  @ApiPropertyOptional({ nullable: true })
   dailyChange?: string | null;
 
   @ApiPropertyOptional({ nullable: true })
@@ -154,6 +160,58 @@ export class PortfolioMarketSnapshotDto {
   quoteSource!: string;
 }
 
+export class PortfolioStockQuoteDto {
+  @ApiProperty()
+  symbol!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  latestPrice!: string;
+
+  @ApiProperty()
+  dailyChange!: string;
+
+  @ApiProperty()
+  dailyPctChange!: string;
+
+  @ApiProperty()
+  quoteSource!: string;
+
+  @ApiProperty()
+  market!: string;
+
+  @ApiProperty()
+  suggestedTheme!: string;
+}
+
+export class PortfolioFundQuoteDto {
+  @ApiProperty()
+  fundCode!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  netValueDate!: string;
+
+  @ApiProperty()
+  unitNetValue!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  estimatedNetValue!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  estimatedPctChange!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  estimatedAt!: string | null;
+
+  @ApiProperty()
+  quoteSource!: string;
+}
+
 export class PortfolioSummaryDto {
   @ApiProperty()
   stockCostValue!: string;
@@ -205,6 +263,30 @@ export class PortfolioDecisionSummaryDto {
   riskLevel!: 'low' | 'medium' | 'high';
 }
 
+export class PortfolioDecisionDataStatusDto {
+  @ApiProperty({ enum: ['live', 'fallback'] })
+  status!: 'live' | 'fallback';
+
+  @ApiProperty()
+  label!: string;
+
+  @ApiProperty()
+  updatedAt!: string;
+
+  @ApiProperty({ type: [String] })
+  sources!: readonly string[];
+
+  @ApiProperty()
+  quoteCoverage!: {
+    readonly updated: number;
+    readonly total: number;
+    readonly ratio: string;
+  };
+
+  @ApiProperty({ type: [String] })
+  stalePositionNames!: readonly string[];
+}
+
 export class PortfolioPositionPricePlanDto {
   @ApiPropertyOptional({ nullable: true })
   currentPrice!: string | null;
@@ -223,6 +305,23 @@ export class PortfolioPositionPricePlanDto {
 
   @ApiPropertyOptional({ nullable: true })
   strengthConfirmPrice!: string | null;
+}
+
+export class PortfolioPositionSystemActionDto {
+  @ApiProperty({ enum: ['no_action', 'reduce_risk', 'avoid_add', 'small_add_watch', 'take_profit_watch'] })
+  code!: 'no_action' | 'reduce_risk' | 'avoid_add' | 'small_add_watch' | 'take_profit_watch';
+
+  @ApiProperty()
+  label!: string;
+
+  @ApiProperty({ enum: ['none', 'watch', 'important', 'urgent'] })
+  severity!: 'none' | 'watch' | 'important' | 'urgent';
+
+  @ApiProperty()
+  needsAttention!: boolean;
+
+  @ApiProperty()
+  instruction!: string;
 }
 
 export class PortfolioPositionDecisionDto {
@@ -248,6 +347,12 @@ export class PortfolioPositionDecisionDto {
   unrealizedPnl!: string | null;
 
   @ApiPropertyOptional({ nullable: true })
+  buyDate?: string | null;
+
+  @ApiProperty({ enum: ['new', 'holding', 'long_term_core'] })
+  holdingStage!: 'new' | 'holding' | 'long_term_core';
+
+  @ApiPropertyOptional({ nullable: true })
   unrealizedPnlPercent!: string | null;
 
   @ApiPropertyOptional({ nullable: true })
@@ -258,6 +363,9 @@ export class PortfolioPositionDecisionDto {
 
   @ApiProperty()
   actionLabel!: string;
+
+  @ApiProperty({ type: PortfolioPositionSystemActionDto })
+  systemAction!: PortfolioPositionSystemActionDto;
 
   @ApiProperty({ enum: ['low', 'medium', 'high'] })
   riskLevel!: 'low' | 'medium' | 'high';
@@ -306,9 +414,319 @@ export class PortfolioDecisionIntradayPlanDto {
   emergency!: readonly string[];
 }
 
+export class PortfolioFundSignalDto {
+  @ApiProperty()
+  fundName!: string;
+
+  @ApiProperty()
+  theme!: string;
+
+  @ApiProperty()
+  amount!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  weightPercent!: string | null;
+
+  @ApiProperty()
+  proxyCode!: string;
+
+  @ApiProperty()
+  proxyName!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  proxyPctChange!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  quoteSource!: string | null;
+
+  @ApiProperty()
+  signalLabel!: string;
+
+  @ApiProperty()
+  actionLabel!: string;
+
+  @ApiProperty()
+  reason!: string;
+}
+
+export class PortfolioThemeRadarDto {
+  @ApiProperty()
+  theme!: string;
+
+  @ApiProperty()
+  stockValue!: string;
+
+  @ApiProperty()
+  fundValue!: string;
+
+  @ApiProperty()
+  totalValue!: string;
+
+  @ApiProperty()
+  weightPercent!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  heatPctChange!: string | null;
+
+  @ApiProperty()
+  sourceCount!: number;
+
+  @ApiProperty({ enum: ['low', 'medium', 'high'] })
+  riskLevel!: 'low' | 'medium' | 'high';
+
+  @ApiProperty()
+  heatLabel!: string;
+
+  @ApiProperty()
+  actionLabel!: string;
+
+  @ApiProperty()
+  reason!: string;
+
+  @ApiProperty({ type: [String] })
+  members!: readonly string[];
+}
+
+export class PortfolioDailyActionDto {
+  @ApiProperty()
+  priority!: number;
+
+  @ApiProperty({ enum: ['开盘前', '盘中', '收盘后'] })
+  phase!: '开盘前' | '盘中' | '收盘后';
+
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty()
+  detail!: string;
+
+  @ApiProperty()
+  evidence!: string;
+
+  @ApiProperty({ enum: ['ready', 'wait', 'danger'] })
+  tone!: 'ready' | 'wait' | 'danger';
+}
+
+export class PortfolioInvestorProfileDto {
+  @ApiProperty()
+  horizon!: string;
+
+  @ApiProperty()
+  style!: string;
+
+  @ApiProperty()
+  coreView!: string;
+
+  @ApiProperty({ type: [String] })
+  principles!: readonly string[];
+}
+
+export class PortfolioInvestorPreferenceDto {
+  @ApiProperty()
+  horizon!: string;
+
+  @ApiProperty()
+  coreView!: string;
+
+  @ApiProperty()
+  roboticsMaxWeightPercent!: number;
+
+  @ApiProperty()
+  singleStockMaxDrawdownPercent!: number;
+
+  @ApiProperty()
+  portfolioMaxDrawdownPercent!: number;
+
+  @ApiProperty({ type: [String] })
+  coreHoldings!: readonly string[];
+
+  @ApiProperty({ type: [String] })
+  satelliteHoldings!: readonly string[];
+
+  @ApiProperty()
+  rebalanceCadence!: string;
+
+  @ApiProperty()
+  cashPlan!: string;
+
+  @ApiProperty({ type: [String] })
+  trimOrder!: readonly string[];
+}
+
+export class PortfolioDecisionQuestionDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  question!: string;
+
+  @ApiProperty()
+  reason!: string;
+}
+
+export class PortfolioAdviceItemDto {
+  @ApiProperty({ enum: ['preference', 'quant'] })
+  source!: 'preference' | 'quant';
+
+  @ApiProperty({ enum: ['stock', 'fund', 'theme', 'portfolio'] })
+  targetType!: 'stock' | 'fund' | 'theme' | 'portfolio';
+
+  @ApiProperty()
+  targetName!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  targetCode!: string | null;
+
+  @ApiProperty()
+  action!: string;
+
+  @ApiProperty()
+  actionLabel!: string;
+
+  @ApiProperty({ enum: ['none', 'watch', 'important', 'urgent'] })
+  severity!: 'none' | 'watch' | 'important' | 'urgent';
+
+  @ApiProperty()
+  confidence!: string;
+
+  @ApiProperty()
+  reason!: string;
+
+  @ApiProperty()
+  evidence!: string;
+}
+
+export class PortfolioQuantSignalDto {
+  @ApiProperty()
+  symbol!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty({ enum: ['live', 'historical', 'quote_only', 'unavailable'] })
+  dataStatus!: 'live' | 'historical' | 'quote_only' | 'unavailable';
+
+  @ApiPropertyOptional({ nullable: true })
+  latestPrice!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  ma5!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  ma20!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  drawdownFrom20HighPercent!: string | null;
+
+  @ApiProperty({ enum: ['uptrend', 'downtrend', 'sideways', 'unknown'] })
+  trend!: 'uptrend' | 'downtrend' | 'sideways' | 'unknown';
+
+  @ApiProperty()
+  riskLine!: string;
+
+  @ApiProperty()
+  action!: string;
+
+  @ApiProperty()
+  actionLabel!: string;
+
+  @ApiProperty({ enum: ['低', '中', '高'] })
+  confidence!: '低' | '中' | '高';
+
+  @ApiProperty({ type: [String] })
+  reasons!: readonly string[];
+
+  @ApiProperty()
+  evidence!: string;
+}
+
+export class PortfolioAdviceBacktestItemDto {
+  @ApiProperty({ enum: ['preference', 'quant'] })
+  track!: 'preference' | 'quant';
+
+  @ApiProperty()
+  symbol!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  action!: string;
+
+  @ApiProperty()
+  actionLabel!: string;
+
+  @ApiProperty()
+  startDate!: string;
+
+  @ApiProperty()
+  endDate!: string;
+
+  @ApiProperty()
+  startPrice!: string;
+
+  @ApiProperty()
+  endPrice!: string;
+
+  @ApiProperty()
+  returnPercent!: string;
+
+  @ApiProperty({ enum: ['有效', '无效', '中性', '证据不足'] })
+  verdict!: '有效' | '无效' | '中性' | '证据不足';
+
+  @ApiProperty()
+  explanation!: string;
+}
+
+export class PortfolioAdviceBacktestSummaryDto {
+  @ApiProperty({ enum: ['preference', 'quant'] })
+  track!: 'preference' | 'quant';
+
+  @ApiProperty()
+  total!: number;
+
+  @ApiProperty()
+  effective!: number;
+
+  @ApiProperty()
+  ineffective!: number;
+
+  @ApiProperty()
+  inconclusive!: number;
+
+  @ApiProperty()
+  effectiveRate!: string;
+
+  @ApiProperty()
+  conclusion!: string;
+}
+
+export class PortfolioAdviceBacktestDto {
+  @ApiProperty()
+  generatedAt!: string;
+
+  @ApiProperty()
+  startDate!: string;
+
+  @ApiProperty()
+  endDate!: string;
+
+  @ApiProperty()
+  dataStatus!: string;
+
+  @ApiProperty({ type: [PortfolioAdviceBacktestSummaryDto] })
+  summaries!: readonly PortfolioAdviceBacktestSummaryDto[];
+
+  @ApiProperty({ type: [PortfolioAdviceBacktestItemDto] })
+  items!: readonly PortfolioAdviceBacktestItemDto[];
+}
+
 export class PortfolioTradingDecisionDto {
   @ApiProperty()
   generatedAt!: string;
+
+  @ApiProperty({ type: PortfolioDecisionDataStatusDto })
+  dataStatus!: PortfolioDecisionDataStatusDto;
 
   @ApiProperty({ type: PortfolioDecisionMarketRegimeDto })
   marketRegime!: PortfolioDecisionMarketRegimeDto;
@@ -327,6 +745,33 @@ export class PortfolioTradingDecisionDto {
 
   @ApiProperty({ type: [PortfolioMarketSnapshotDto] })
   marketSnapshots!: readonly PortfolioMarketSnapshotDto[];
+
+  @ApiProperty({ type: [PortfolioFundSignalDto] })
+  fundSignals!: readonly PortfolioFundSignalDto[];
+
+  @ApiProperty({ type: [PortfolioThemeRadarDto] })
+  themeRadar!: readonly PortfolioThemeRadarDto[];
+
+  @ApiProperty({ type: [PortfolioDailyActionDto] })
+  dailyActions!: readonly PortfolioDailyActionDto[];
+
+  @ApiProperty({ type: PortfolioInvestorProfileDto })
+  investorProfile!: PortfolioInvestorProfileDto;
+
+  @ApiProperty({ type: PortfolioInvestorPreferenceDto })
+  investorPreference!: PortfolioInvestorPreferenceDto;
+
+  @ApiProperty({ type: [PortfolioDecisionQuestionDto] })
+  questionsForInvestor!: readonly PortfolioDecisionQuestionDto[];
+
+  @ApiProperty({ type: [PortfolioAdviceItemDto] })
+  preferenceAdvice!: readonly PortfolioAdviceItemDto[];
+
+  @ApiProperty({ type: [PortfolioAdviceItemDto] })
+  quantAdvice!: readonly PortfolioAdviceItemDto[];
+
+  @ApiProperty({ type: [PortfolioQuantSignalDto] })
+  quantSignals!: readonly PortfolioQuantSignalDto[];
 
   @ApiProperty({ type: [String] })
   nextTriggers!: readonly string[];

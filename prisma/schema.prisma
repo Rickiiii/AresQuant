@@ -363,6 +363,8 @@ model PortfolioHolding {
   latestPrice   Decimal?            @map("latest_price") @db.Decimal(18, 6)
   marketValue   Decimal?            @map("market_value") @db.Decimal(24, 6)
   unrealizedPnl Decimal?            @map("unrealized_pnl") @db.Decimal(24, 6)
+  buyDate       DateTime?           @map("buy_date") @db.Date
+  holdingStage  String?             @map("holding_stage") @db.VarChar(32)
   themeTags     String[]            @default([]) @map("theme_tags")
   riskLevel     PortfolioRiskLevel  @default(MEDIUM) @map("risk_level")
   actionBias    PortfolioActionBias @default(WATCH) @map("action_bias")
@@ -436,6 +438,25 @@ model WatchlistItem {
   @@index([accountId, actionBias])
   @@index([symbol])
   @@map("watchlist_items")
+}
+
+model InvestorPreference {
+  id                            String   @id @default(uuid()) @db.Uuid
+  owner                         String   @unique @db.VarChar(64)
+  horizon                       String   @db.VarChar(128)
+  coreView                      String   @map("core_view") @db.Text
+  roboticsMaxWeightPercent     Decimal  @map("robotics_max_weight_percent") @db.Decimal(10, 4)
+  singleStockMaxDrawdownPercent Decimal  @map("single_stock_max_drawdown_percent") @db.Decimal(10, 4)
+  portfolioMaxDrawdownPercent   Decimal  @map("portfolio_max_drawdown_percent") @db.Decimal(10, 4)
+  coreHoldings                  Json     @map("core_holdings") @db.JsonB
+  satelliteHoldings             Json     @map("satellite_holdings") @db.JsonB
+  rebalanceCadence              String   @map("rebalance_cadence") @db.VarChar(128)
+  cashPlan                      String   @map("cash_plan") @db.Text
+  trimOrder                     Json     @map("trim_order") @db.JsonB
+  createdAt                     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("investor_preferences")
 }
 
 model ResearchJournalEntry {

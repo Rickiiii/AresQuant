@@ -3,7 +3,7 @@ import {
   PORTFOLIO_CONTEXT_REPOSITORY,
   type PortfolioContextRepository,
 } from '../domain/portfolio.repositories';
-import type { PortfolioContextRecord, PortfolioThemeExposureRecord } from '../domain/portfolio.types';
+import type { PortfolioContextRecord, PortfolioInvestorPreferenceRecord, PortfolioThemeExposureRecord } from '../domain/portfolio.types';
 import type { PortfolioContextDto, UpsertPortfolioFundHoldingDto, UpsertPortfolioStockHoldingDto } from '../presentation/dto/portfolio-context.dto';
 
 const ALLOWED_ACTIONS = ['hold', 'add', 'build', 'watch', 'take_profit', 'risk_control'] as const;
@@ -29,6 +29,14 @@ export class PortfolioContextService {
     return toPortfolioContext(record);
   }
 
+  async getInvestorPreference(owner = 'Ricki'): Promise<PortfolioInvestorPreferenceRecord | null> {
+    return this.repository.findInvestorPreference(owner);
+  }
+
+  async upsertInvestorPreference(input: PortfolioInvestorPreferenceRecord): Promise<PortfolioInvestorPreferenceRecord> {
+    return this.repository.upsertInvestorPreference(input);
+  }
+
   async upsertStockHolding(input: UpsertPortfolioStockHoldingDto, owner = 'Ricki'): Promise<PortfolioContextDto> {
     const current = await this.loadEditableContext(owner);
     const holding = {
@@ -40,6 +48,8 @@ export class PortfolioContextService {
       latestPrice: input.latestPrice ?? null,
       marketValue: roundMoney(input.quantity * (input.latestPrice ?? input.costPrice)),
       unrealizedPnl: input.latestPrice === undefined || input.latestPrice === null ? null : roundMoney((input.latestPrice - input.costPrice) * input.quantity),
+      buyDate: normalizeBuyDate(input.buyDate),
+      holdingStage: input.holdingStage ?? inferHoldingStage(input.buyDate),
       themeTags: input.themeTags?.length === undefined || input.themeTags.length === 0 ? splitTheme(input.theme) : input.themeTags,
       riskLevel: 'medium' as const,
       actionBias: input.actionBias ?? 'watch',
@@ -130,6 +140,8 @@ function toPortfolioContext(record: PortfolioContextRecord): PortfolioContextDto
         latestPrice: holding.latestPrice,
         marketValue: holding.marketValue,
         unrealizedPnl: holding.unrealizedPnl,
+        buyDate: holding.buyDate,
+        holdingStage: holding.holdingStage,
         theme: holding.themeTags.join(' / '),
         themeTags: holding.themeTags,
         thesis: holding.thesis,
@@ -208,6 +220,23 @@ function splitTheme(theme: string): readonly string[] {
   return theme.split('/').map((item) => item.trim()).filter(Boolean);
 }
 
+function normalizeBuyDate(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const normalized = value.trim();
+  return /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(normalized) ? normalized : null;
+}
+
+function inferHoldingStage(buyDate: string | null | undefined): 'new' | 'holding' | 'long_term_core' {
+  const normalized = normalizeBuyDate(buyDate);
+  if (normalized === null) {
+    return 'holding';
+  }
+  const days = Math.floor((Date.now() - new Date(`${normalized}T00:00:00.000Z`).getTime()) / 86400000);
+  return days <= 20 ? 'new' : days >= 365 ? 'long_term_core' : 'holding';
+}
+
 function replaceBy<T>(items: readonly T[], nextItem: T, isMatch: (item: T) => boolean): readonly T[] {
   const next = items.filter((item) => !isMatch(item));
   return [...next, nextItem];
@@ -242,6 +271,8 @@ const RICKI_PORTFOLIO_SEED: PortfolioContextRecord = {
       latestPrice: null,
       marketValue: 10776,
       unrealizedPnl: null,
+      buyDate: null,
+      holdingStage: 'holding',
       themeTags: ['稀土永磁', '电机材料'],
       riskLevel: 'medium',
       actionBias: 'hold',
@@ -256,6 +287,8 @@ const RICKI_PORTFOLIO_SEED: PortfolioContextRecord = {
       latestPrice: null,
       marketValue: 13924,
       unrealizedPnl: null,
+      buyDate: null,
+      holdingStage: 'long_term_core',
       themeTags: ['物理AI', '机器人执行器', '智能车'],
       riskLevel: 'medium',
       actionBias: 'hold',
@@ -270,6 +303,8 @@ const RICKI_PORTFOLIO_SEED: PortfolioContextRecord = {
       latestPrice: null,
       marketValue: 17079.09,
       unrealizedPnl: null,
+      buyDate: null,
+      holdingStage: 'holding',
       themeTags: ['机器人', '工业母机高弹性'],
       riskLevel: 'high',
       actionBias: 'hold',
@@ -284,6 +319,8 @@ const RICKI_PORTFOLIO_SEED: PortfolioContextRecord = {
       latestPrice: null,
       marketValue: 4467,
       unrealizedPnl: null,
+      buyDate: null,
+      holdingStage: 'holding',
       themeTags: ['生猪养殖', '农业'],
       riskLevel: 'medium',
       actionBias: 'hold',
@@ -298,6 +335,8 @@ const RICKI_PORTFOLIO_SEED: PortfolioContextRecord = {
       latestPrice: null,
       marketValue: 7679.4,
       unrealizedPnl: null,
+      buyDate: null,
+      holdingStage: 'holding',
       themeTags: ['半导体封测', 'CIS封装'],
       riskLevel: 'medium',
       actionBias: 'hold',
@@ -312,6 +351,8 @@ const RICKI_PORTFOLIO_SEED: PortfolioContextRecord = {
       latestPrice: null,
       marketValue: 6483.2,
       unrealizedPnl: null,
+      buyDate: null,
+      holdingStage: 'holding',
       themeTags: ['船舶军工', '高端装备'],
       riskLevel: 'medium',
       actionBias: 'hold',
@@ -326,6 +367,8 @@ const RICKI_PORTFOLIO_SEED: PortfolioContextRecord = {
       latestPrice: null,
       marketValue: 9200,
       unrealizedPnl: null,
+      buyDate: null,
+      holdingStage: 'long_term_core',
       themeTags: ['新能源车热管理', '物理AI机器人'],
       riskLevel: 'medium',
       actionBias: 'hold',

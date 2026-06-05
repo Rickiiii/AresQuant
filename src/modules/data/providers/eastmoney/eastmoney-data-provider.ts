@@ -5,6 +5,7 @@ import type {
   AdjFactorRawData,
   DailyBarRawData,
   FinancialFactorRawData,
+  FundQuoteRawData,
   IndexDailyBarRawData,
   LimitPriceRawData,
   MarketSnapshotRawData,
@@ -86,6 +87,8 @@ export class EastmoneyDataProvider implements DataProvider {
   private readonly baseKlineUrl = 'https://push2his.eastmoney.com/api/qt/stock/kline/get';
   private readonly baseSnapshotUrl = 'https://push2.eastmoney.com/api/qt/clist/get';
   private readonly baseQuoteUrl = 'https://push2.eastmoney.com/api/qt/ulist.np/get';
+  private readonly tencentQuoteUrl = 'https://qt.gtimg.cn/q=';
+  private readonly fundQuoteUrl = 'https://fundgz.1234567.com.cn/js/';
   private readonly fetcher: FetchLike;
 
   constructor(@Optional() @Inject(EASTMONEY_FETCHER) fetcher?: FetchLike) {
@@ -174,15 +177,28 @@ export class EastmoneyDataProvider implements DataProvider {
       return [];
     }
 
-    const payload = await this.getJson<EastmoneyQuotePayload>(this.buildQuoteListUrl(uniqueSymbols));
-    if (!Array.isArray(payload.data?.diff)) {
-      throw new Error('Invalid Eastmoney quote response');
+    try {
+      const payload = await this.getJson<EastmoneyQuotePayload>(this.buildQuoteListUrl(uniqueSymbols));
+      if (!Array.isArray(payload.data?.diff)) {
+        throw new Error('Invalid Eastmoney quote response');
+      }
+      const symbolSet = new Set(uniqueSymbols);
+      return payload.data.diff
+        .filter((row) => row.f12 !== undefined && symbolSet.has(row.f12))
+        .map((row) => mapQuote(row))
+        .filter((row): row is StockQuoteRawData => row !== undefined);
+    } catch {
+      return this.getTencentStockQuotes(uniqueSymbols);
     }
-    const symbolSet = new Set(uniqueSymbols);
-    return payload.data.diff
-      .filter((row) => row.f12 !== undefined && symbolSet.has(row.f12))
-      .map((row) => mapQuote(row))
-      .filter((row): row is StockQuoteRawData => row !== undefined);
+  }
+
+  async getFundQuotes(fundCodes: readonly string[]): Promise<readonly FundQuoteRawData[]> {
+    const uniqueCodes = Array.from(new Set(fundCodes.map((code) => code.trim()).filter((code) => /^[0-9]{6}$/.test(code))));
+    if (uniqueCodes.length === 0) {
+      return [];
+    }
+    const quotes = await Promise.all(uniqueCodes.map((code) => this.getFundQuote(code)));
+    return quotes.filter((quote): quote is FundQuoteRawData => quote !== undefined);
   }
 
   async getMarketSnapshots(items: readonly MarketSnapshotRequest[]): Promise<readonly MarketSnapshotRawData[]> {
@@ -191,14 +207,18 @@ export class EastmoneyDataProvider implements DataProvider {
       return [];
     }
 
-    const payload = await this.getJson<EastmoneyQuotePayload>(this.buildMarketSnapshotUrl(uniqueItems));
-    if (!Array.isArray(payload.data?.diff)) {
-      throw new Error('Invalid Eastmoney market snapshot response');
+    try {
+      const payload = await this.getJson<EastmoneyQuotePayload>(this.buildMarketSnapshotUrl(uniqueItems));
+      if (!Array.isArray(payload.data?.diff)) {
+        throw new Error('Invalid Eastmoney market snapshot response');
+      }
+      const itemByCompactCode = new Map(uniqueItems.map((item) => [compactMarketCode(item.code), item]));
+      return payload.data.diff
+        .map((row) => mapMarketSnapshot(row, itemByCompactCode.get(row.f12 ?? '')))
+        .filter((row): row is MarketSnapshotRawData => row !== undefined);
+    } catch {
+      return this.getTencentMarketSnapshots(uniqueItems);
     }
-    const itemByCompactCode = new Map(uniqueItems.map((item) => [compactMarketCode(item.code), item]));
-    return payload.data.diff
-      .map((row) => mapMarketSnapshot(row, itemByCompactCode.get(row.f12 ?? '')))
-      .filter((row): row is MarketSnapshotRawData => row !== undefined);
   }
 
   private async getJson<T>(url: string): Promise<T> {
@@ -237,6 +257,51 @@ export class EastmoneyDataProvider implements DataProvider {
     }
 
     throw lastError instanceof Error ? lastError : new Error('Eastmoney request failed');
+  }
+
+  private async getTencentStockQuotes(symbols: readonly string[]): Promise<readonly StockQuoteRawData[]> {
+    const text = await this.getTencentText(symbols.map(toTencentSecId));
+    return parseTencentLines(text)
+      .map((line) => mapTencentQuote(line))
+      .filter((quote): quote is StockQuoteRawData => quote !== undefined);
+  }
+
+  private async getTencentMarketSnapshots(items: readonly MarketSnapshotRequest[]): Promise<readonly MarketSnapshotRawData[]> {
+    const itemBySymbol = new Map(items.map((item) => [compactMarketCode(item.code), item]));
+    const text = await this.getTencentText(items.map((item) => toTencentMarketSecId(item.code)));
+    return parseTencentLines(text)
+      .map((line) => mapTencentMarketSnapshot(line, itemBySymbol.get(mustGet(line, 2))))
+      .filter((snapshot): snapshot is MarketSnapshotRawData => snapshot !== undefined);
+  }
+
+  private async getTencentText(secIds: readonly string[]): Promise<string> {
+    const response = await this.fetcher(`${this.tencentQuoteUrl}${secIds.join(',')}`, {
+      headers: {
+        Accept: 'text/plain,*/*',
+        'User-Agent': 'Mozilla/5.0 AresQuant/0.1 TencentQuoteFallback',
+        Referer: 'https://gu.qq.com/',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Tencent quote request failed: HTTP ${response.status}`);
+    }
+    const bytes = await response.arrayBuffer();
+    return new TextDecoder('gb18030').decode(bytes);
+  }
+
+  private async getFundQuote(fundCode: string): Promise<FundQuoteRawData | undefined> {
+    const response = await this.fetcher(`${this.fundQuoteUrl}${fundCode}.js?rt=${Date.now()}`, {
+      headers: {
+        Accept: 'application/javascript,text/plain,*/*',
+        'User-Agent': 'Mozilla/5.0 AresQuant/0.1 FundQuoteLookup',
+        Referer: 'https://fund.eastmoney.com/',
+      },
+    });
+    if (!response.ok) {
+      return undefined;
+    }
+    const text = await response.text();
+    return mapFundQuote(text);
   }
 
   private buildStockListUrl(): string {
@@ -466,6 +531,112 @@ function mapMarketSnapshot(
   };
 }
 
+function parseTencentLines(text: string): readonly string[][] {
+  return text
+    .split(';')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const match = line.match(/="(.*)"$/);
+      return match?.[1]?.split('~') ?? [];
+    })
+    .filter((parts) => parts.length > 34);
+}
+
+function mapTencentQuote(parts: readonly string[]): StockQuoteRawData | undefined {
+  const symbol = parts[2];
+  const name = parts[1];
+  if (symbol === undefined || name === undefined || symbol.length === 0 || name.length === 0) {
+    return undefined;
+  }
+  const latestPrice = toOptionalNumber(parts[3]);
+  const preClose = toOptionalNumber(parts[4]);
+  const open = toOptionalNumber(parts[5]);
+  const change = toOptionalNumber(parts[31]);
+  const pctChange = toOptionalNumber(parts[32]);
+  const high = toOptionalNumber(parts[33]);
+  const low = toOptionalNumber(parts[34]);
+  const volume = toOptionalNumber(parts[36]);
+  const amountWan = toOptionalNumber(parts[37]);
+  if (
+    latestPrice === undefined
+    || preClose === undefined
+    || open === undefined
+    || change === undefined
+    || pctChange === undefined
+    || high === undefined
+    || low === undefined
+    || volume === undefined
+    || amountWan === undefined
+  ) {
+    return undefined;
+  }
+  return {
+    symbol,
+    name,
+    latestPrice,
+    change,
+    pctChange,
+    open,
+    high,
+    low,
+    preClose,
+    volume,
+    amount: amountWan * 10000,
+    source: 'tencent',
+  };
+}
+
+function mapTencentMarketSnapshot(parts: readonly string[], request: MarketSnapshotRequest | undefined): MarketSnapshotRawData | undefined {
+  const quote = mapTencentQuote(parts);
+  if (quote === undefined || request === undefined) {
+    return undefined;
+  }
+  return {
+    code: request.code,
+    name: request.name || quote.name,
+    category: request.category,
+    latestPrice: quote.latestPrice,
+    change: quote.change,
+    pctChange: quote.pctChange,
+    amount: quote.amount,
+    source: quote.source,
+  };
+}
+
+function mapFundQuote(text: string): FundQuoteRawData | undefined {
+  const match = text.match(/jsonpgz\((.*)\);?/);
+  if (match?.[1] === undefined) {
+    return undefined;
+  }
+  const payload = JSON.parse(match[1]) as {
+    readonly fundcode?: string;
+    readonly name?: string;
+    readonly jzrq?: string;
+    readonly dwjz?: string;
+    readonly gsz?: string;
+    readonly gszzl?: string;
+    readonly gztime?: string;
+  };
+  if (payload.fundcode === undefined || payload.name === undefined || payload.jzrq === undefined || payload.dwjz === undefined) {
+    return undefined;
+  }
+  const unitNetValue = toOptionalNumber(payload.dwjz);
+  if (unitNetValue === undefined) {
+    return undefined;
+  }
+  return {
+    fundCode: payload.fundcode,
+    name: payload.name,
+    netValueDate: payload.jzrq,
+    unitNetValue,
+    estimatedNetValue: toOptionalNumber(payload.gsz) ?? null,
+    estimatedPctChange: toOptionalNumber(payload.gszzl) ?? null,
+    estimatedAt: payload.gztime ?? null,
+    source: 'eastmoney',
+  };
+}
+
 function limitRatioForStock(symbol: string, name: string): number {
   if (name.includes('ST')) {
     return 0.05;
@@ -517,7 +688,7 @@ function parseKline(line: string): {
 }
 
 function exchangeForSymbol(symbol: string): Exchange | undefined {
-  if (symbol.startsWith('6')) {
+  if (symbol.startsWith('5') || symbol.startsWith('6')) {
     return Exchange.SSE;
   }
   if (symbol.startsWith('0') || symbol.startsWith('3')) {
@@ -544,6 +715,10 @@ function toSecId(symbol: string): string {
   return `${exchange === Exchange.SSE ? '1' : '0'}.${symbol}`;
 }
 
+function toTencentSecId(symbol: string): string {
+  return `${exchangeForSymbol(symbol) === Exchange.SSE ? 'sh' : 'sz'}${symbol}`;
+}
+
 function toIndexSecId(indexCode: string): string {
   const compact = indexCode.split('.')[0];
   return `${indexCode.endsWith('.SZ') ? '0' : '1'}.${compact}`;
@@ -561,6 +736,14 @@ function toMarketSecId(code: string): string {
     return `1.${compact}`;
   }
   return `0.${compact}`;
+}
+
+function toTencentMarketSecId(code: string): string {
+  const compact = compactMarketCode(code);
+  if (code.endsWith('.SH') || compact.startsWith('5') || compact.startsWith('6') || compact.startsWith('9')) {
+    return `sh${compact}`;
+  }
+  return `sz${compact}`;
 }
 
 function compactMarketCode(code: string): string {

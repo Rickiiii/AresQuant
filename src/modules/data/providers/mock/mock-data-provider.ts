@@ -5,6 +5,7 @@ import type {
   AdjFactorRawData,
   DailyBarRawData,
   FinancialFactorRawData,
+  FundQuoteRawData,
   IndexDailyBarRawData,
   LimitPriceRawData,
   MarketSnapshotRawData,
@@ -190,6 +191,28 @@ export class MockDataProvider implements DataProvider {
         source: 'mock',
       };
     });
+  }
+
+  async getFundQuotes(fundCodes: readonly string[]): Promise<readonly FundQuoteRawData[]> {
+    return fundCodes.map((fundCode, index) => ({
+      fundCode,
+      name: this.fundNameForCode(fundCode),
+      netValueDate: '2026-06-02',
+      unitNetValue: round(1 + index * 0.08),
+      estimatedNetValue: round(1.01 + index * 0.08),
+      estimatedPctChange: round(0.6 - index * 0.2),
+      estimatedAt: '2026-06-03 15:00',
+      source: 'mock',
+    }));
+  }
+
+  private fundNameForCode(fundCode: string): string {
+    const names: Record<string, string> = {
+      '161725': '招商中证白酒指数(LOF)A',
+      '008086': '华夏中证5G通信主题ETF联接A',
+      '000834': '大成纳斯达克100ETF联接A',
+    };
+    return names[fundCode] ?? `基金 ${fundCode}`;
   }
 }
 

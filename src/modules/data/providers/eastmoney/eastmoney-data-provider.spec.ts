@@ -177,13 +177,14 @@ describe('EastmoneyDataProvider', () => {
       data: {
         diff: [
           { f12: '600366', f14: '宁波韵升', f2: 15.25, f3: 2.01, f4: 0.3, f5: 123456, f6: 18827160, f17: 14.9, f15: 15.4, f16: 14.7, f18: 14.95 },
+          { f12: '560710', f14: '船舶ETF', f2: 1.08, f3: 1.89, f4: 0.02, f5: 5000000, f6: 5400000, f17: 1.06, f15: 1.09, f16: 1.05, f18: 1.06 },
           { f12: '000001', f14: '平安银行', f2: 10.01, f3: -0.1, f4: -0.01, f5: 1000, f6: 10010, f17: 10.02, f15: 10.08, f16: 9.99, f18: 10.02 },
         ],
       },
     });
     const provider = new EastmoneyDataProvider(fetcher);
 
-    await expect(provider.getStockQuotes(['600366'])).resolves.toEqual([
+    await expect(provider.getStockQuotes(['600366', '560710'])).resolves.toEqual([
       {
         symbol: '600366',
         name: '宁波韵升',
@@ -198,9 +199,23 @@ describe('EastmoneyDataProvider', () => {
         amount: 18827160,
         source: 'eastmoney',
       },
+      {
+        symbol: '560710',
+        name: '船舶ETF',
+        latestPrice: 1.08,
+        change: 0.02,
+        pctChange: 1.89,
+        open: 1.06,
+        high: 1.09,
+        low: 1.05,
+        preClose: 1.06,
+        volume: 5000000,
+        amount: 5400000,
+        source: 'eastmoney',
+      },
     ]);
     expect(fetcher).toHaveBeenCalledWith(
-      expect.stringContaining('secids=1.600366'),
+      expect.stringContaining('secids=1.600366%2C1.560710'),
       expect.any(Object),
     );
   });
@@ -233,6 +248,70 @@ describe('EastmoneyDataProvider', () => {
     );
   });
 
+  it('falls back to Tencent quotes when Eastmoney quote request fails', async () => {
+    const tencentParts = Array<string>(38).fill('');
+    tencentParts[1] = 'CATL';
+    tencentParts[2] = '300750';
+    tencentParts[3] = '426.42';
+    tencentParts[4] = '433.89';
+    tencentParts[5] = '437.00';
+    tencentParts[31] = '-7.47';
+    tencentParts[32] = '-1.72';
+    tencentParts[33] = '437.00';
+    tencentParts[34] = '420.10';
+    tencentParts[36] = '385526';
+    tencentParts[37] = '1646079.0913';
+    const fetcher = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('socket closed'))
+      .mockRejectedValueOnce(new Error('socket closed'))
+      .mockResolvedValueOnce(fakeTextResponse(`v_sz300750="${tencentParts.join('~')}";`));
+    const provider = new EastmoneyDataProvider(fetcher as unknown as typeof fetch);
+
+    await expect(provider.getStockQuotes(['300750'])).resolves.toEqual([
+      {
+        symbol: '300750',
+        name: 'CATL',
+        latestPrice: 426.42,
+        change: -7.47,
+        pctChange: -1.72,
+        open: 437,
+        high: 437,
+        low: 420.1,
+        preClose: 433.89,
+        volume: 385526,
+        amount: 16460790913,
+        source: 'tencent',
+      },
+    ]);
+    expect(fetcher).toHaveBeenLastCalledWith(
+      expect.stringContaining('qt.gtimg.cn/q=sz300750'),
+      expect.any(Object),
+    );
+  });
+
+  it('maps Eastmoney fund quote rows for selected fund codes', async () => {
+    const fetcher = jest.fn().mockResolvedValue(fakeTextResponse('jsonpgz({"fundcode":"161725","name":"招商中证白酒指数(LOF)A","jzrq":"2026-06-02","dwjz":"0.5742","gsz":"0.5675","gszzl":"-1.16","gztime":"2026-06-03 15:00"});'));
+    const provider = new EastmoneyDataProvider(fetcher as unknown as typeof fetch);
+
+    await expect(provider.getFundQuotes(['161725'])).resolves.toEqual([
+      {
+        fundCode: '161725',
+        name: '招商中证白酒指数(LOF)A',
+        netValueDate: '2026-06-02',
+        unitNetValue: 0.5742,
+        estimatedNetValue: 0.5675,
+        estimatedPctChange: -1.16,
+        estimatedAt: '2026-06-03 15:00',
+        source: 'eastmoney',
+      },
+    ]);
+    expect(fetcher).toHaveBeenCalledWith(
+      expect.stringContaining('fundgz.1234567.com.cn/js/161725.js'),
+      expect.any(Object),
+    );
+  });
+
   it('fails fast when Eastmoney returns an invalid payload', async () => {
     const provider = new EastmoneyDataProvider(fakeFetch({ rc: 0, data: null }));
 
@@ -244,6 +323,8 @@ type FakeResponse = {
   readonly ok: boolean;
   readonly status: number;
   json(): Promise<unknown>;
+  arrayBuffer?(): Promise<ArrayBuffer>;
+  text?(): Promise<string>;
 };
 
 function fakeFetch(payload: unknown): typeof fetch {
@@ -255,5 +336,16 @@ function fakeResponse(payload: unknown): FakeResponse {
     ok: true,
     status: 200,
     json: async () => payload,
+  } satisfies FakeResponse;
+}
+
+function fakeTextResponse(text: string): FakeResponse {
+  const bytes = new TextEncoder().encode(text);
+  return {
+    ok: true,
+    status: 200,
+    json: async () => ({}),
+    arrayBuffer: async () => bytes.buffer,
+    text: async () => text,
   } satisfies FakeResponse;
 }

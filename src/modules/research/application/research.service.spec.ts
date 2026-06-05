@@ -1,5 +1,6 @@
 import type { DashboardService } from '@/modules/dashboard/application/dashboard.service';
 import type { PortfolioContextService } from '@/modules/portfolio/application/portfolio-context.service';
+import type { PortfolioService } from '@/modules/portfolio/application/portfolio.service';
 import type { PrismaService } from '@/database/prisma.service';
 import { ResearchService } from './research.service';
 
@@ -71,20 +72,25 @@ describe('ResearchService', () => {
     ]);
   });
 
-  it('uses persisted portfolio context and theme exposures when PortfolioService has data', async () => {
-    const service = new ResearchService(createDashboardService(), createPortfolioService());
+  it('uses live portfolio context with quote-enriched prices when PortfolioService has data', async () => {
+    const service = new ResearchService(createDashboardService(), createPortfolioService(), createLivePortfolioService());
 
     await expect(service.getPortfolioContext()).resolves.toMatchObject({
       owner: 'Ricki',
       stockAccount: {
         positions: [
-          expect.objectContaining({ symbol: '600366', latestPrice: 14.1 }),
+          expect.objectContaining({ symbol: '600366', latestPrice: 12.67, unrealizedPnl: -640 }),
         ],
       },
       fundAccount: {
-        visibleAssetValue: 135386,
+        visibleAssetValue: 197000,
       },
     });
+  });
+
+  it('uses persisted portfolio theme exposures from editable context', async () => {
+    const service = new ResearchService(createDashboardService(), createPortfolioService());
+
     await expect(service.listThemeExposures()).resolves.toEqual([
       expect.objectContaining({ theme: '海外科技', source: 'fund', weightPercent: 23.93 }),
     ]);
@@ -92,7 +98,7 @@ describe('ResearchService', () => {
 
   it('saves and lists research journal entries through Prisma raw queries', async () => {
     const prisma = createPrismaService();
-    const service = new ResearchService(undefined, undefined, prisma as unknown as PrismaService);
+    const service = new ResearchService(undefined, undefined, undefined, prisma as unknown as PrismaService);
 
     await expect(service.saveJournalEntry({
       noteDate: '2026-05-29',
@@ -249,6 +255,44 @@ function createPortfolioService(): PortfolioContextService {
       },
     }),
   } as unknown as PortfolioContextService;
+}
+
+function createLivePortfolioService(): PortfolioService {
+  return {
+    getContext: jest.fn().mockResolvedValue({
+      owner: 'Ricki',
+      accountScope: 'A 股账户 + 可见基金持仓',
+      summary: {
+        stockCostValue: '10776.00',
+        visibleFundValue: '135386.00',
+        knownPortfolioValue: '197000.00',
+        stockWeightPercent: '31.70',
+        fundWeightPercent: '68.30',
+      },
+      account: {
+        totalAssetValue: '197000.00',
+        visibleAssetValue: '197000.00',
+      },
+      positions: [
+        {
+          symbol: '600366',
+          name: '宁波韵升',
+          quantity: 800,
+          costPrice: '13.470000',
+          latestPrice: '12.670000',
+          marketValue: '10136.00',
+          unrealizedPnl: '-640.00',
+          themeTags: ['稀土永磁', '电机材料'],
+          thesisSummary: '真实行情增强后的持仓。',
+          actionBias: 'hold',
+        },
+      ],
+      fundExposures: [],
+      watchThemes: [{ name: '稀土永磁' }],
+      riskFlags: ['真实行情已接入。'],
+      actionRules: ['先看真实行情再做组合建议。'],
+    }),
+  } as unknown as PortfolioService;
 }
 
 function createPrismaService(): { $queryRaw: jest.Mock } {

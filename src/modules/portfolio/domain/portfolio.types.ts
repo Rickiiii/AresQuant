@@ -1,6 +1,7 @@
 export type PortfolioAction = 'hold' | 'add' | 'build' | 'watch' | 'take_profit' | 'risk_control';
 export type PortfolioRiskLevel = 'low' | 'medium' | 'high';
 export type PortfolioExposureSource = 'stock' | 'fund' | 'mixed';
+export type PortfolioHoldingStage = 'new' | 'holding' | 'long_term_core';
 
 export interface PortfolioAccountRecord {
   readonly id: string;
@@ -23,6 +24,8 @@ export interface PortfolioStockHoldingRecord {
   readonly latestPrice: number | null;
   readonly marketValue: number | null;
   readonly unrealizedPnl: number | null;
+  readonly buyDate: string | null;
+  readonly holdingStage: PortfolioHoldingStage;
   readonly themeTags: readonly string[];
   readonly riskLevel: PortfolioRiskLevel;
   readonly actionBias: PortfolioAction;
@@ -58,6 +61,20 @@ export interface PortfolioWatchlistItemRecord {
   readonly theme: string;
   readonly reason: string;
   readonly actionBias: PortfolioAction;
+}
+
+export interface PortfolioInvestorPreferenceRecord {
+  readonly owner: string;
+  readonly horizon: string;
+  readonly coreView: string;
+  readonly roboticsMaxWeightPercent: number;
+  readonly singleStockMaxDrawdownPercent: number;
+  readonly portfolioMaxDrawdownPercent: number;
+  readonly coreHoldings: readonly string[];
+  readonly satelliteHoldings: readonly string[];
+  readonly rebalanceCadence: string;
+  readonly cashPlan: string;
+  readonly trimOrder: readonly string[];
 }
 
 export interface PortfolioContextRecord {

@@ -102,7 +102,7 @@ export interface MarketSnapshotRawData {
   readonly change: number;
   readonly pctChange: number;
   readonly amount: number;
-  readonly source: 'eastmoney' | 'mock';
+  readonly source: 'eastmoney' | 'tencent' | 'mock';
 }
 
 export interface StockQuoteRawData {
@@ -117,6 +117,17 @@ export interface StockQuoteRawData {
   readonly preClose: number;
   readonly volume: number;
   readonly amount: number;
+  readonly source: 'eastmoney' | 'tencent' | 'mock';
+}
+
+export interface FundQuoteRawData {
+  readonly fundCode: string;
+  readonly name: string;
+  readonly netValueDate: string;
+  readonly unitNetValue: number;
+  readonly estimatedNetValue: number | null;
+  readonly estimatedPctChange: number | null;
+  readonly estimatedAt: string | null;
   readonly source: 'eastmoney' | 'mock';
 }
 

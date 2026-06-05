@@ -1,10 +1,10 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ok, type ApiResponse } from '@/common/types/api-response';
 import { PortfolioContextService } from '../application/portfolio-context.service';
 import { PortfolioService } from '../application/portfolio.service';
 import { PortfolioContextDto as EditablePortfolioContextDto, UpsertPortfolioFundHoldingDto, UpsertPortfolioStockHoldingDto } from './dto/portfolio-context.dto';
-import { PortfolioContextDto, PortfolioFundExposureDto, PortfolioPositionDto, PortfolioTradingDecisionDto } from './dto/portfolio.dto';
+import { PortfolioAdviceBacktestDto, PortfolioContextDto, PortfolioFundExposureDto, PortfolioFundQuoteDto, PortfolioInvestorPreferenceDto, PortfolioPositionDto, PortfolioStockQuoteDto, PortfolioTradingDecisionDto } from './dto/portfolio.dto';
 
 @ApiTags('portfolio')
 @Controller('portfolio')
@@ -49,6 +49,42 @@ export class PortfolioController {
     return ok(await this.portfolioService.getTradingDecision());
   }
 
+  @Get('advice-backtest')
+  @ApiOperation({ summary: 'Replay current preference and quant advice against recent real daily bars' })
+  @ApiOkResponse({ type: PortfolioAdviceBacktestDto })
+  async adviceBacktest(@Query('days') days?: string): Promise<ApiResponse<PortfolioAdviceBacktestDto>> {
+    return ok(await this.portfolioService.getAdviceBacktest(parsePositiveInt(days, 30)));
+  }
+
+  @Get('investor-preference')
+  @ApiOperation({ summary: 'Get Ricki investor preference config for long-term advice' })
+  @ApiOkResponse({ type: PortfolioInvestorPreferenceDto })
+  async investorPreference(): Promise<ApiResponse<PortfolioInvestorPreferenceDto>> {
+    return ok(await this.portfolioService.getInvestorPreference());
+  }
+
+  @Post('investor-preference')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update Ricki investor preference config for long-term advice' })
+  @ApiOkResponse({ type: PortfolioInvestorPreferenceDto })
+  async updateInvestorPreference(@Body() dto: PortfolioInvestorPreferenceDto): Promise<ApiResponse<PortfolioInvestorPreferenceDto>> {
+    return ok(await this.portfolioService.updateInvestorPreference(dto));
+  }
+
+  @Get('quotes')
+  @ApiOperation({ summary: 'Lookup live stock quotes for portfolio holding editor autofill' })
+  @ApiOkResponse({ type: [PortfolioStockQuoteDto] })
+  async quotes(@Query('symbols') symbols: string): Promise<ApiResponse<readonly PortfolioStockQuoteDto[]>> {
+    return ok(await this.portfolioService.lookupStockQuotes(parseSymbols(symbols)));
+  }
+
+  @Get('fund-quotes')
+  @ApiOperation({ summary: 'Lookup fund net values for portfolio fund editor autofill' })
+  @ApiOkResponse({ type: [PortfolioFundQuoteDto] })
+  async fundQuotes(@Query('codes') codes: string): Promise<ApiResponse<readonly PortfolioFundQuoteDto[]>> {
+    return ok(await this.portfolioService.lookupFundQuotes(parseSymbols(codes)));
+  }
+
   @Post('context/seed-ricki')
   @ApiOperation({ summary: 'Seed Ricki portfolio context with the current fallback holdings and exposures' })
   @ApiOkResponse({ type: EditablePortfolioContextDto })
@@ -71,4 +107,16 @@ export class PortfolioController {
   async upsertFundHolding(@Body() dto: UpsertPortfolioFundHoldingDto): Promise<ApiResponse<EditablePortfolioContextDto>> {
     return ok(await this.portfolioContextService.upsertFundHolding(dto, 'Ricki'));
   }
+}
+
+function parseSymbols(value: string | undefined): readonly string[] {
+  return (value ?? '')
+    .split(/[\s,，、]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
